@@ -1,0 +1,11 @@
+# Die requirements können mit "pip install -r requirements.txt" installiert werden. 
+# Current working directory im Beispielaufruf ist die directory, die dieses file beinhaltet.
+openpyxl
+odfpy
+xlrd
+numpy
+pandas
+irrCAC
+pingouin
+xlsxwriter
+pillow
