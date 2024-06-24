@@ -1,0 +1,17 @@
+{
+    "name": null,
+    "input_variables": [
+        "context",
+        "docstring_template",
+        "method"
+    ],
+    "input_types": {},
+    "output_parser": null,
+    "partial_variables": {},
+    "metadata": null,
+    "tags": null,
+    "template": "\n    You are a helpful assistant that helps to create documentation for Python source code.\n\n    You are given the following Python module method:\n    ```\n    {method}\n    ```\n\n    Additionally you are given the entire python file as context: \n    ```\n    {context}\n    ```\n    Please provide a docstring that explains the class method in a concise and relevant way. \n\n    Please adhere to the reStructuredText (reST) format that is used by Sphinx to generate documentation. Ensure that the lines are no longer than eighty characters,\n    and don't give too much unnecessary information.\n\n    Only return the docstring without the source code or without anything else. An example of the output should look like this: \n    ```\n    {docstring_template}\n    ```\n    ",
+    "template_format": "f-string",
+    "validate_template": false,
+    "_type": "prompt"
+}
