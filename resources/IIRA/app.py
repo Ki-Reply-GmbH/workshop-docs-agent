@@ -51,29 +51,19 @@ class App(tk.Tk):
         self.show_frame("MainFrame")
     
     def show_frame(self, frame_name):
-        """
-```
-Show the specified frame by bringing it to the front.
+        """Switch to the specified frame by raising it to the top of the stack.
 
 :param frame_name: The name of the frame to be displayed.
 :type frame_name: str
 :returns: None
-```
 """
         frame = self.frames[frame_name]
         frame.tkraise()
     
     def load_icons(self):
-        """
-```
-Load all required icons for the application.
-
-This method initializes various icons used throughout the application by
-loading them from the specified file paths and assigning them to instance
-variables.
+        """Load all necessary icons for the application from the specified file paths.
 
 :returns: None
-```
 """
         self.app_icon = ImageTk.PhotoImage(file=os.path.join(file_path, "data/icons/intrarater_512px.png"))
         self.file_select_icon = ImageTk.PhotoImage(file=os.path.join(file_path, "data/icons/file_select.png"))
@@ -93,31 +83,22 @@ variables.
         self.checked_icon = ImageTk.PhotoImage(file=os.path.join(file_path, "data/themes/forest-light/check-accent.png"))
 
     def init_root_frame(self, frame):
-        """
-```
-Configure the root frame's grid layout.
+        """Configure the given frame to fill the root window's grid.
 
-This method sets the given frame to occupy the entire grid space of the root 
-window, ensuring it expands to fit any resizing.
-
-:param frame: The frame to be initialized in the root window.
+:param frame: The frame to be configured.
 :type frame: tk.Frame
-:returns: None
-```
 """
         frame.grid(row=0, column=0, sticky="nsew")
     
     def init_frames(self):
-        """
-```
-Initialize and reset all frames in the application.
+        """Initialize and reset all frames within the application.
 
-This method destroys all existing widgets in the current frames and reinitializes
-them with new instances of various frame classes. Each frame is then added to the
-`self.frames` dictionary.
+This method destroys all widgets in the existing frames and then reinitializes
+the main application frames: MainFrame, ScaleFrame, FileFrame, RateFrame,
+ResultsFrame, and AnalyseFrame. Each frame is added to the `self.frames`
+dictionary and configured to occupy the root grid.
 
 :returns: None
-```
 """
         for frame in self.frames:
             for widget in self.frames[frame].winfo_children():
@@ -152,6 +133,15 @@ them with new instances of various frame classes. Each frame is then added to th
 if __name__ == "__main__":
   app = App()
   app.mainloop()
+
+
+
+
+
+
+
+
+
 
 
 
