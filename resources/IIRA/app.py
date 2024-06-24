@@ -51,10 +51,30 @@ class App(tk.Tk):
         self.show_frame("MainFrame")
     
     def show_frame(self, frame_name):
+        """
+```
+Show the specified frame by bringing it to the front.
+
+:param frame_name: The name of the frame to be displayed.
+:type frame_name: str
+:returns: None
+```
+"""
         frame = self.frames[frame_name]
         frame.tkraise()
     
     def load_icons(self):
+        """
+```
+Load all required icons for the application.
+
+This method initializes various icons used throughout the application by
+loading them from the specified file paths and assigning them to instance
+variables.
+
+:returns: None
+```
+"""
         self.app_icon = ImageTk.PhotoImage(file=os.path.join(file_path, "data/icons/intrarater_512px.png"))
         self.file_select_icon = ImageTk.PhotoImage(file=os.path.join(file_path, "data/icons/file_select.png"))
         self.home_icon = ImageTk.PhotoImage(file=os.path.join(file_path, "data/icons/home_32px.png"))
@@ -73,9 +93,32 @@ class App(tk.Tk):
         self.checked_icon = ImageTk.PhotoImage(file=os.path.join(file_path, "data/themes/forest-light/check-accent.png"))
 
     def init_root_frame(self, frame):
+        """
+```
+Configure the root frame's grid layout.
+
+This method sets the given frame to occupy the entire grid space of the root 
+window, ensuring it expands to fit any resizing.
+
+:param frame: The frame to be initialized in the root window.
+:type frame: tk.Frame
+:returns: None
+```
+"""
         frame.grid(row=0, column=0, sticky="nsew")
     
     def init_frames(self):
+        """
+```
+Initialize and reset all frames in the application.
+
+This method destroys all existing widgets in the current frames and reinitializes
+them with new instances of various frame classes. Each frame is then added to the
+`self.frames` dictionary.
+
+:returns: None
+```
+"""
         for frame in self.frames:
             for widget in self.frames[frame].winfo_children():
                 widget.destroy()
@@ -109,3 +152,6 @@ class App(tk.Tk):
 if __name__ == "__main__":
   app = App()
   app.mainloop()
+
+
+

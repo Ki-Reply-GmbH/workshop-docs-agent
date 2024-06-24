@@ -13,7 +13,7 @@ pd.set_option("display.width", 1000)
 
 class CreateAnalyses():
     def __init__(self, intra_id_list, inter_id_list, intra_metrics, inter_metrics, scale_format, categories, weights, data):
-        # Daten, die von der Klasse fÃ¼r die Analyse gebraucht werden
+        # Daten, die von der Klasse für die Analyse gebraucht werden
         self.debug = True
         self.intra_id_list = intra_id_list
         self.inter_id_list = inter_id_list
@@ -105,36 +105,51 @@ class CreateAnalyses():
         ret = {}
         for rating in self.data[id]:
             if not isinstance(rating[LABEL], str) or rating[LABEL] == "":
-                # Nullwerte Ã¼berspringen
+                # Nullwerte überspringen
                 continue
             if rating[TEXT] in ret:
-                # Falls das Subject rating[TEXT] schon im dictionary vorhanden ist, fÃ¼ge
+                # Falls das Subject rating[TEXT] schon im dictionary vorhanden ist, füge
                 # das Label vom Repilkat hinzu.
                 ret[rating[TEXT]].append(rating[LABEL])
             else:
-                # Andernfalls fÃ¼ge das erste Label hinzu
+                # Andernfalls füge das erste Label hinzu
                 ret[rating[TEXT]] = [rating[LABEL]]
         if self.debug:
-            # Keys entfernen, die nur einmal bewertet worden sind. Die sind nicht relevant fÃ¼r intrarater.
+            # Keys entfernen, die nur einmal bewertet worden sind. Die sind nicht relevant für intrarater.
             ret_rmv = {k: v for k, v in ret.items() if len(v) >= 2}
         return pd.DataFrame.from_dict(ret_rmv, orient="index")
 
 
     def find_inter_ratings(self):
+        """
+```
+Finds and aggregates inter-rater ratings from the provided data.
+
+Iterates over the list of inter-rater IDs and collects ratings for each text 
+subject. If a text subject already exists in the result dictionary, it appends 
+the new rating label to the list. Otherwise, it creates a new entry for the 
+text subject with the rating label.
+
+:returns: DataFrame where each row represents a text subject and columns 
+          represent ratings from different raters.
+:rtype: pandas.DataFrame
+```
+"""
         ret = {}
         for i, id in enumerate(self.inter_id_list):
             for rating in self.data[id]:
                 if rating[TEXT] in ret:
-                    # Duplikate Ã¼berspringen; sind nur fÃ¼r Intra-Rater-Analyse relevant
+                    # Duplikate überspringen; sind nur für Intra-Rater-Analyse relevant
                     if len(ret[rating[TEXT]]) > i:
                         continue
 
-                    # Falls das Subject rating[TEXT] schon im dictionary vorhanden ist, fÃ¼ge
+                    # Falls das Subject rating[TEXT] schon im dictionary vorhanden ist, füge
                     # das Label vom Repilkat hinzu.
                     ret[rating[TEXT]].append(rating[LABEL])
                 else:
-                    # Andernfalls fÃ¼ge das erste Label hinzu
+                    # Andernfalls füge das erste Label hinzu
                     ret[rating[TEXT]] = [rating[LABEL]]
 
         return pd.DataFrame.from_dict(ret, orient="index")                
+
 

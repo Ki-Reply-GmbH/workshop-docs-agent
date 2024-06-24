@@ -1,32 +1,102 @@
 
 import ast
 from pathlib import Path
-from typing import Iterator, Any, Optional, List, NotRequired
+from typing import Iterator, Any, Optional, List, NotRequired, Union
 import re
+
+from langchain.prompts import load_prompt
+from langchain_openai import ChatOpenAI
+from langchain_core.output_parsers import StrOutputParser
+
+llm = ChatOpenAI(
+    model_name="gpt-4o", # type: ignore
+    openai_api_key="", # type: ignore
+    openai_organization="org-Mxa66lw5lFVUrdKlbb4gJYsv", # type: ignore
+    temperature=0.3,
+    streaming=True,
+    max_retries=10,
+    verbose=True) 
+
 
 def list_all_files(path: Path) -> Iterator[Path]:
 	return path.rglob("*.py")
 
 def document_files(path: str):
-        
-        treated_files: set[Path] = set()
-        
-        for file in list_all_files(Path(path)):
+		
+		treated_files: set[Path] = set()
+		
+		for file in list_all_files(Path(path)):
 
-            if treated_files in treated_files:
-                continue
-            
-            file_content: str
-            with open(file, 'r', encoding='utf-8') as f:
-                file_content = f.read()
-                
-            file_content_lines = re.split(r'\r?\n')
-            file_content = '\n'.join(file_content_lines)
-            
-            ast_result = ast.parse(file_content)
-            visitor = MyNodeVisitor(filecontent=file_content, lines=file_content_lines)
-            visitor.visit(ast_result)
-            # print(visitor._module)
+			if treated_files in treated_files:
+				continue
+			
+			visited_nodes:set[str] = set()
+			
+			while True:
+				file_content: str
+				with open(file, 'r', encoding='utf-8') as f:
+					file_content = f.read()
+					
+				file_content_lines = re.split(r'\r?\n', file_content)
+				file_content = '\n'.join(file_content_lines)
+				
+				ast_result = ast.parse(file_content)
+				visitor = MyNodeVisitor(filecontent=file_content, lines=file_content_lines)
+				visitor.visit(ast_result)
+				
+				
+				def _pick(elem: Elem) -> Elem:
+					if elem.get_id() in visited_nodes:
+						return None
+					
+					if isinstance(elem, Container):
+						for subelem in reversed(elem.children):
+							res = _pick(subelem)
+							if res:
+								return res
+						
+					return elem
+ 
+				to_document = _pick(visitor._module)
+				if not to_document:
+					break
+				
+				visited_nodes.add(to_document.get_id())
+				print("picked ", to_document.get_id())
+				if isinstance(to_document, FunctionElem):
+					if isinstance(to_document.parent, ClassElem):
+	
+						# file_content
+						# to_document.body
+						# to_document.parent.name
+      
+						prompt = load_prompt(path='class_method_prompt.json')
+						chain = prompt | llm | StrOutputParser()
+						doc = chain.invoke({
+							'method': to_document.body,
+							'context': file_content,
+							'class_name': to_document.parent.name
+						})
+      
+						to_document.doc = doc
+
+						line = to_document.node_line - 1
+						col = to_document.node_col - 1
+      
+						def _stringify(lines:List[str]) -> str:
+							str = ''
+							for line in lines:
+								str = str + line + '\n'
+							return str
+						
+						new_content = _stringify(file_content_lines[0:line]) + file_content_lines[line][:col+1] + f'"""\n{doc}\n"""\n' + file_content_lines[line][:col] + file_content_lines[line][col:] + '\n' + _stringify(file_content_lines[line+1:])
+      
+						with open(file, 'w', encoding='utf-8') as nf:
+							nf.write(new_content)
+      
+						pass
+
+
             
             
             
@@ -36,6 +106,28 @@ class Elem(BaseModel):
 	name: str
 	doc: Optional[str]
 	parent: Optional['Container']
+ 
+	def get_id(self) -> str:
+		return self.parent.get_id() + '.' +self.name if self.parent else self.name
+
+	@staticmethod
+	def get_node(container: 'Elem', id: str) -> Optional['Elem']:
+		parts = id.split('.')
+		if len(parts) < 2:
+			if container.name == id:
+				return container
+			return None
+
+		if container.name != parts[0]:
+			return None
+
+		if isinstance(container, Container):
+			for child in container.children:
+				res = Elem.get_node(child, '.'.join(parts[1:]))
+				if res:
+					return res
+ 
+		return None
 
 class Container(Elem):
 	children: List['Elem'] = Field(default_factory=lambda: [])
@@ -44,10 +136,13 @@ class Container(Elem):
 class ClassElem(Container):
 	constructor: Optional['FunctionElem']
 	functions: List['FunctionElem']= Field(default_factory=lambda: [])
+	node_line: int
+	node_col: int
  
 class FunctionElem(Elem):
 	body: str
-     
+	node_line: int
+	node_col: int
 
 class MyNodeVisitor(ast.NodeTransformer):
 
@@ -59,23 +154,23 @@ class MyNodeVisitor(ast.NodeTransformer):
 		self._lines = lines
 
 	def visit_FunctionDef(self, node: ast.FunctionDef) -> Any:
-		print(f'function {node.name}')
-
-		fct = FunctionElem(name=node.name, body=ast.unparse(node), doc=None, parent=self._current_node)
-		self._current_node.children.append(fct)
+		fct = FunctionElem(name=node.name, body=ast.unparse(node), doc=None, parent=self._current_node, node_line=node.body[0].lineno, node_col=node.body[0].col_offset)
+		
 		if isinstance(self._current_node, ClassElem):
 			if fct.name == '__init__':
 				self._current_node.constructor = fct
 			else:
 				self._current_node.functions.append(fct)
+				self._current_node.children.append(fct)
+		else:
+			self._current_node.children.append(fct)
+		
 		return ast.NodeVisitor.generic_visit(self, node)
 
 
 	def visit_ClassDef(self, node: ast.ClassDef) -> Any:
-		print(f'class {node.name}')
-
 		parent = self._current_node
-		self._current_node = ClassElem(name=node.name, parent=parent, doc=None, constructor=None)
+		self._current_node = ClassElem(name=node.name, parent=parent, doc=None, constructor=None, node_line=node.body[0].lineno, node_col=node.body[0].col_offset)
 		parent.children.append(self._current_node)
 		res = ast.NodeVisitor.generic_visit(self, node)
 		self._current_node = parent
