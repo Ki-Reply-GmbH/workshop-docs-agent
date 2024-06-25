@@ -162,19 +162,34 @@ def document_files(path: str):
 
 						_add_doc(doc, to_document)
 					else:
-						# function without a class
-						# doc = chain.invoke({
-						# 	'method': to_document.body,
-						# 	'context': file_content,
-						# })
-						pass
+						prompt = load_prompt(path='method_prompt.json')
+						chain = prompt | llm | StrOutputParser()
+						doc = chain.invoke({
+							'method': to_document.body,
+							'context': file_content
+						})
+
+						_add_doc(doc, to_document)
 				elif isinstance(to_document, ClassElem):
 					if to_document.constructor:
-						# document the constructor of that class
-						pass
+						prompt = load_prompt(path='class_constructor_prompt.json')
+						chain = prompt | llm | StrOutputParser()
+						doc = chain.invoke({
+							'constructor': to_document.constructor.body,
+							'class_name': to_document.name,
+							'context': file_content
+						})
+
+						_add_doc(doc, to_document)
 						
-					# document the class
-					pass
+					prompt = load_prompt(path='class_prompt.json')
+					chain = prompt | llm | StrOutputParser()
+					doc = chain.invoke({
+						'class_body': to_document.body,
+						'context': file_content
+					})
+
+					_add_doc(doc, to_document)
 
 				elif to_document is visitor._module and visitor._module:
 	
@@ -183,9 +198,13 @@ def document_files(path: str):
 						doc_global = '\n\n'.join(all_docs)
 						# document the module (= the sub directory)
 					elif len(visitor._module.children) > 1:
-						# document the whole file
-						pass
-     
+						prompt = load_prompt(path='module_prompt.json')
+						chain = prompt | llm | StrOutputParser()
+						doc = chain.invoke({
+							'context': file_content
+						})
+
+						_add_doc(doc, to_document)
 					pass
 
 			if not visitor or not visitor._module:
@@ -230,6 +249,7 @@ class Container(Elem):
 
 class ClassElem(Container):
 	constructor: Optional['FunctionElem']
+	body: str
 	functions: List['FunctionElem'] = Field(default_factory=lambda: [])
 
 
@@ -312,7 +332,7 @@ class MyNodeVisitor(ast.NodeTransformer):
 			raise Exception()
 
 		parent = self._current_node
-		class_elem = ClassElem(name=node.name, parent=parent, doc=None, constructor=None, node_line=node.body[0].lineno, node_col=node.body[0].col_offset)
+		class_elem = ClassElem(name=node.name, body=ast.unparse(node), parent=parent, doc=None, constructor=None, node_line=node.body[0].lineno, node_col=node.body[0].col_offset)
 		self._current_node = class_elem
 		parent.children.append(self._current_node)
 		res = ast.NodeVisitor.generic_visit(self, node)
