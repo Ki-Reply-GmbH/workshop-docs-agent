@@ -1,0 +1,15 @@
+{
+    "name": null,
+    "input_variables": [
+        "context"
+    ],
+    "input_types": {},
+    "output_parser": null,
+    "partial_variables": {},
+    "metadata": null,
+    "tags": null,
+    "template": "\n    You are a helpful assistant that helps to create documentation for Python source code.\n\n    You are tasked with creating a module summary for a Python file. You are given the entire file: \n    ```\n    {context}\n    ```\n    The docstring for a module should generally list the classes, exceptions and functions (and any other objects) that are exported by the module, with a one-line summary of each.\n\n    Please adhere to the reStructuredText (reST) format that is used by Sphinx to generate documentation. Ensure that the lines are no longer than eighty characters.\n\n    Only return the docstring without specifying the code language. An example of the output should look like this: \n    ```\n    Create portable serialized representations of Python objects.\n\n    See module copyreg for a mechanism for registering custom picklers.\n    See module pickletools source for extensive comments.\n\n    Classes:\n\n        Pickler\n        Unpickler\n\n    Functions:\n\n        dump(object, file)\n        dumps(object) -> string\n        load(file) -> object\n        loads(string) -> object\n    ```\n    ",
+    "template_format": "f-string",
+    "validate_template": false,
+    "_type": "prompt"
+}
