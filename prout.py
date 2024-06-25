@@ -105,9 +105,20 @@ def document_files(path: str):
 						for line in lines:
 							str = str + line + '\n'
 						return str
+  
+					def _ident_docs(doc: str):
+						parts = doc.splitlines()
+						parts = [p.strip() for p in parts]
+						res = ''
+						for part in parts:
+							if res:
+								res += f'\n{file_content_lines[line][:col]}{part}'
+							else:
+								res = part
+						return res
 
 					new_content = _stringify(file_content_lines[0:line]) + file_content_lines[line][:col+1] + \
-						f'"""{doc}\n"""\n' + file_content_lines[line][:col] + file_content_lines[line][col:] + '\n' + _stringify(file_content_lines[line+1:])
+						f'"""{_ident_docs(doc)}\n{file_content_lines[line][:col]}"""\n' + file_content_lines[line][:col] + file_content_lines[line][col:] + '\n' + _stringify(file_content_lines[line+1:])
 
 					with open(file, 'w', encoding='utf-8') as nf:
 						nf.write(new_content)
@@ -130,6 +141,7 @@ def document_files(path: str):
 			elif to_document is visitor._module and visitor._module:
 				if len(visitor._module.children) > 1:
 					pass
+				
 				pass
 
 
@@ -137,6 +149,8 @@ class Elem(BaseModel):
 	name: str
 	doc: Optional[str]
 	parent: Optional['Container']
+	node_line: int
+	node_col: int
 
 	def get_id(self) -> str:
 		return self.parent.get_id() + '.' + self.name if self.parent else self.name
@@ -168,11 +182,9 @@ class Container(Elem):
 class ClassElem(Container):
 	constructor: Optional['FunctionElem']
 	functions: List['FunctionElem'] = Field(default_factory=lambda: [])
-	node_line: int
-	node_col: int
 
 
-class FunctionElem(Elem):
+class FunctionElem(Container):
 	body: str
 	node_line: int
 	node_col: int
@@ -190,7 +202,7 @@ class MyNodeVisitor(ast.NodeTransformer):
 		if self._module:
 			raise Exception()
 
-		self._current_node = self._module = Container(name='module', doc=ast.get_docstring(node), parent=None)
+		self._current_node = self._module = Container(name='module', doc=ast.get_docstring(node), parent=None, node_col=0, node_line=0)
 		return ast.NodeVisitor.generic_visit(self, node)
 	
 	def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> Any:
