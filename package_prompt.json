@@ -1,14 +1,15 @@
 {
     "name": null,
     "input_variables": [
-        "context"
+        "context",
+        "package_name"
     ],
     "input_types": {},
     "output_parser": null,
     "partial_variables": {},
     "metadata": null,
     "tags": null,
-    "template": "\n    You are a helpful assistant that helps to create documentation for Python source code.\n\n    You are tasked with creating a docstring for a Python package. \n    You are given the name of each file in the package followed by the summary of the file containing its classes and methods.\n    ```\n    {context}\n    ```\n    The docstring for a package (i.e., the docstring of the package's __init__.py module) should also list the modules and subpackages exported by the package.\n\n    Please adhere to the reStructuredText (reST) format that is used by Sphinx to generate documentation. Ensure that the lines are no longer than eighty characters.\n\n    Only return the docstring without specifying the code language.\n    ",
+    "template": "\n    You are a helpful assistant that helps to create documentation for Python source code.\n\n    You are tasked with creating a docstring for a Python package {package_name}\n    You are given the name of each file in the package followed by the summary of the file containing its classes and methods.\n    ```\n    {context}\n    ```\n    The docstring for a package (i.e., the docstring of the package's __init__.py module) should also list the modules and subpackages exported by the package.\n\n    Please adhere to the reStructuredText (reST) format that is used by Sphinx to generate documentation. Ensure that the lines are no longer than eighty characters.\n\n    Only return the docstring without specifying the code language in markdown.\n    ",
     "template_format": "f-string",
     "validate_template": false,
     "_type": "prompt"
