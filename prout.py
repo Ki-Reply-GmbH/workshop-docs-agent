@@ -113,6 +113,24 @@ def document_files(path: str):
 						nf.write(new_content)
 
 					pass
+ 
+				else:
+					# function without a class
+					# doc = chain.invoke({
+					# 	'method': to_document.body,
+					# 	'context': file_content,
+					# })
+					pass
+			elif isinstance(to_document, ClassElem):
+				if to_document.constructor:
+					pass
+				
+				pass
+
+			elif to_document is visitor._module and visitor._module:
+				if len(visitor._module.children) > 1:
+					pass
+				pass
 
 
 class Elem(BaseModel):
