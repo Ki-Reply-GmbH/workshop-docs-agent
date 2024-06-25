@@ -29,65 +29,82 @@ llm = ChatOpenAI(
 	verbose=True)
 
 
-def list_all_files(path: Path) -> Iterator[Path]:
-	return path.rglob("*.py")
+class GroupDir(BaseModel):
+	files: List[str]
+	path: str
+
+def list_all_files(path: Path) -> Iterator[GroupDir]:
+	ext = ['.py']
+	subfolders: List[str] = []
+	files: List[str] = []
+
+	path = path.absolute()
+
+	for f in os.scandir(path):
+		if f.is_dir():
+			subfolders.append(f.path)
+		if f.is_file():
+			if os.path.splitext(f.name)[1].lower() in ext:
+				files.append(f.name)
+
+	if files:
+		try:
+			idx = files.index('__init__.py')
+		except:
+			idx = -1
+
+		if idx >= 0:
+			files = files[0:idx] + files[idx+1:] + [files[idx]]
+
+		yield GroupDir(files=files, path=str(path.absolute()))
+
+	for dir in subfolders:
+		new_path = Path.joinpath(path, dir)
+
+		for r in list_all_files(new_path):
+			yield r
 
 
 def document_files(path: str):
 
-	treated_files: set[Path] = set()
+	
 
-	for file in list_all_files(Path(path)):
-
-		if treated_files in treated_files:
-			continue
-
-		visited_nodes: set[str] = set()
-
-		while True:
-			file_content: str
-			with open(file, 'r', encoding='utf-8') as f:
-				file_content = f.read()
-
-			file_content_lines = re.split(r'\r?\n', file_content)
-			file_content = '\n'.join(file_content_lines)
-
-			ast_result = ast.parse(file_content)
-			visitor = MyNodeVisitor(filecontent=file_content, lines=file_content_lines)
-			visitor.visit(ast_result)
-
-			def _pick(elem: Elem | None) -> Elem | None:
-				if not elem or elem.get_id() in visited_nodes:
-					return None
-
-				if isinstance(elem, Container):
-					for subelem in reversed(elem.children):
-						res = _pick(subelem)
-						if res:
-							return res
-
-				return elem
-
-			to_document = _pick(visitor._module)
-			if not to_document:
-				break
-
-			visited_nodes.add(to_document.get_id())
-			if to_document.doc:
-				continue # already documented
+	for module in list_all_files(Path(path)):
+		treated_files: dict[str, str | None] = {}
+	
+		for filename in module.files:
+			if treated_files.get(filename, None):
+				continue
 			
-			print("picked ", to_document.get_id())
-			if isinstance(to_document, FunctionElem):
-				if isinstance(to_document.parent, ClassElem):
+			file = Path.joinpath(Path(module.path), filename)
 
-					prompt = load_prompt(path='class_method_prompt.json')
-					chain = prompt | llm | StrOutputParser()
-					doc = chain.invoke({
-						'method': to_document.body,
-						'context': file_content,
-						'class_name': to_document.parent.name
-					})
+			visited_nodes: set[str] = set()
+			visitor:MyNodeVisitor| None = None
+			while True:
+				file_content: str
+				with open(file, 'r', encoding='utf-8') as f:
+					file_content = f.read()
 
+				file_content_lines = re.split(r'\r?\n', file_content)
+				file_content = '\n'.join(file_content_lines)
+
+				ast_result = ast.parse(file_content)
+				visitor = MyNodeVisitor(filecontent=file_content, lines=file_content_lines)
+				visitor.visit(ast_result)
+
+				def _pick(elem: Elem | None) -> Elem | None:
+					if not elem or elem.get_id() in visited_nodes:
+						return None
+
+					if isinstance(elem, Container):
+						for subelem in reversed(elem.children):
+							res = _pick(subelem)
+							if res:
+								return res
+
+					return elem
+
+				def _add_doc(doc: str, to_document: Elem):
 					blocs = extract_md_blocks(doc)
 					if blocs:
 						if len(blocs) > 1:
@@ -105,7 +122,7 @@ def document_files(path: str):
 						for line in lines:
 							str = str + line + '\n'
 						return str
-  
+
 					def _ident_docs(doc: str):
 						parts = doc.splitlines()
 						parts = [p.strip() for p in parts]
@@ -123,27 +140,59 @@ def document_files(path: str):
 					with open(file, 'w', encoding='utf-8') as nf:
 						nf.write(new_content)
 
-					pass
- 
-				else:
-					# function without a class
-					# doc = chain.invoke({
-					# 	'method': to_document.body,
-					# 	'context': file_content,
-					# })
-					pass
-			elif isinstance(to_document, ClassElem):
-				if to_document.constructor:
-					pass
-				
-				pass
+				to_document = _pick(visitor._module)
+				if not to_document:
+					break
 
-			elif to_document is visitor._module and visitor._module:
-				if len(visitor._module.children) > 1:
-					pass
+				visited_nodes.add(to_document.get_id())
+				if to_document.doc:
+					continue # already documented
 				
-				pass
+				print("picked ", to_document.get_id())
+				if isinstance(to_document, FunctionElem):
+					if isinstance(to_document.parent, ClassElem):
 
+						prompt = load_prompt(path='class_method_prompt.json')
+						chain = prompt | llm | StrOutputParser()
+						doc = chain.invoke({
+							'method': to_document.body,
+							'context': file_content,
+							'class_name': to_document.parent.name
+						})
+
+						_add_doc(doc, to_document)
+					else:
+						# function without a class
+						# doc = chain.invoke({
+						# 	'method': to_document.body,
+						# 	'context': file_content,
+						# })
+						pass
+				elif isinstance(to_document, ClassElem):
+					if to_document.constructor:
+						# document the constructor of that class
+						pass
+						
+					# document the class
+					pass
+
+				elif to_document is visitor._module and visitor._module:
+	
+					if filename == '__init__.py':
+						all_docs = [f'# {k}\n{v}' for k, v in treated_files.items() if v]
+						doc_global = '\n\n'.join(all_docs)
+						# document the module (= the sub directory)
+					elif len(visitor._module.children) > 1:
+						# document the whole file
+						pass
+     
+					pass
+
+			if not visitor or not visitor._module:
+				raise Exception()
+
+			doc = visitor._module.children[0].doc if len(visitor._module.children) == 1 else visitor._module.doc
+			treated_files[filename] = doc
 
 class Elem(BaseModel):
 	name: str
@@ -189,7 +238,6 @@ class FunctionElem(Container):
 	node_line: int
 	node_col: int
 
-
 class MyNodeVisitor(ast.NodeTransformer):
 
 	def __init__(self, filecontent: str, lines: List[str]):
@@ -202,13 +250,14 @@ class MyNodeVisitor(ast.NodeTransformer):
 		if self._module:
 			raise Exception()
 
-		self._current_node = self._module = Container(name='module', doc=ast.get_docstring(node), parent=None, node_col=0, node_line=0)
+		self._current_node = self._module = Container(name='module', doc=ast.get_docstring(node), parent=None, node_col=1, node_line=1)
 		return ast.NodeVisitor.generic_visit(self, node)
 	
 	def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> Any:
 		if not self._current_node:
 			raise Exception()
 
+		parent = self._current_node
 		fct = FunctionElem(
 			name=node.name,
 			body=ast.unparse(node),
@@ -226,12 +275,16 @@ class MyNodeVisitor(ast.NodeTransformer):
 		else:
 			self._current_node.children.append(fct)
 
-		return ast.NodeVisitor.generic_visit(self, node)
+		self._current_node = fct
+		res = ast.NodeVisitor.generic_visit(self, node)
+		self._current_node = parent
+		return res
 
 	def visit_FunctionDef(self, node: ast.FunctionDef) -> Any:
 		if not self._current_node:
 			raise Exception()
 
+		parent = self._current_node
 		fct = FunctionElem(
 			name=node.name,
 			body=ast.unparse(node),
@@ -249,7 +302,10 @@ class MyNodeVisitor(ast.NodeTransformer):
 		else:
 			self._current_node.children.append(fct)
 
-		return ast.NodeVisitor.generic_visit(self, node)
+		self._current_node = fct
+		res = ast.NodeVisitor.generic_visit(self, node)
+		self._current_node = parent
+		return res
 
 	def visit_ClassDef(self, node: ast.ClassDef) -> Any:
 		if not self._current_node:
