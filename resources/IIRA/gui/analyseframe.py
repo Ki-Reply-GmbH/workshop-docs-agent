@@ -1,3 +1,25 @@
+"""Provides GUI components for reliability analysis using tkinter.
+
+This module sets up the graphical user interface (GUI) for performing
+reliability analysis, including intra-rater and inter-rater analysis. It
+includes classes for creating and managing frames, handling user inputs,
+and displaying results.
+
+Classes:
+
+AnalyseFrame
+Sets up the GUI components for reliability analysis, including
+methods for populating rater and metrics containers, initiating
+the analysis, and updating the frame.
+
+ResultsFrame
+Sets up the GUI components for displaying reliability analysis
+results. It includes methods for calculating and populating
+intra-rater and inter-rater results, exporting results to a file,
+and updating the frame with dynamic data.
+"""
+
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 from math import isnan
@@ -14,7 +36,31 @@ selected_intra_metrics = []
 selected_inter_metrics = []
 
 class AnalyseFrame(ContainerFrame):
+    """A class to represent the AnalyseFrame, setting up the GUI components for
+    reliability analysis, including methods for populating rater and metrics
+    containers, initiating the analysis, and updating the frame.
+    """
     def __init__(self, container):
+        """Initializes the AnalyseFrame class, setting up the GUI components for the
+        analysis frame.
+        
+        :param container: The parent container to which this frame belongs.
+        :type container: tkinter.Tk or tkinter.Toplevel
+        
+        The constructor performs the following steps:
+        
+        1. Initializes various metrics and their corresponding tkinter IntVar variables
+        for intra-rater and inter-rater reliability analysis.
+        2. Creates dictionaries to map metric names to their IntVar variables for both
+        intra-rater and inter-rater metrics.
+        3. Initializes dictionaries to hold selected intra-rater and inter-rater IDs.
+        4. Calls the parent class constructor.
+        5. Configures the style for buttons used in the AnalyseFrame.
+        6. Sets up the left and right frames for the GUI layout.
+        7. Adds labels, containers, and buttons for selecting raters and metrics.
+        8. Configures the layout using grid and pack geometry managers.
+        9. Sets the row and column weights for resizing behavior.
+        """
         self.metrics = []
 
         self.intra_kappa = tk.IntVar()
@@ -87,6 +133,13 @@ class AnalyseFrame(ContainerFrame):
         self.columnconfigure(1, weight=1)
 
     def analyse_start(self, container):
+        """Initiates the analysis process by selecting metrics and IDs, validating the
+        selections, and updating the results frame.
+        
+        :param container: The parent container to which this frame belongs.
+        :type container: tkinter.Tk or tkinter.Toplevel
+        :raises ValueError: If invalid selections are made.
+        """
         global selected_intra_metrics
         for metric in self.intra_metrics:
             if self.intra_metrics[metric].get() == 1 and metric not in selected_intra_metrics:
@@ -130,6 +183,14 @@ class AnalyseFrame(ContainerFrame):
         container.show_frame("ResultsFrame")
 
     def populate_rater_container(self):
+        """Populates the rater container with IDs and corresponding variables.
+        
+        This method creates a table with rater IDs and their associated intrarater
+        and interrater variables. It initializes these variables for each rater ID
+        and adds them to the content list for table creation.
+        
+        :raises AttributeError: If `self.container` or `self.create_table` is not defined.
+        """
         headings = ["ID", "Intrarater", "Interrater"]
         content = []
         for id in self.container.rater_ids:
@@ -140,6 +201,14 @@ class AnalyseFrame(ContainerFrame):
         self.create_table(self.rater_container.viewPort, headings, content)
         
     def populate_metrics_container(self):
+        """Populates the metrics container based on the scale format.
+        
+        This method sets the available metrics according to the scale format of the
+        container. It then creates a table with the metrics and their corresponding
+        intrarater and interrater variables.
+        
+        :raises ValueError: If an invalid scale format is provided.
+        """
         if self.container.scale_format == "nominal":
             self.metrics = ["Cohen's-|Conger's \u03BA", "Fleiss' \u03BA", "Krippendorff's \u03B1", "Gwet's AC"]
         elif self.container.scale_format == "ordinal":
@@ -157,6 +226,15 @@ class AnalyseFrame(ContainerFrame):
         self.create_table(self.metrics_container, headings, content)
         
     def map_metric_to_var(self, mode, metric_name):
+        """Maps a given metric name to its corresponding variable based on the mode.
+        
+        :param mode: The mode of the metric, either 'intra' or 'inter'.
+        :type mode: str
+        :param metric_name: The name of the metric to map.
+        :type metric_name: str
+        :returns: The variable corresponding to the given metric name and mode.
+        :rtype: tk.IntVar
+        """
         if mode == "intra":
             if metric_name == "Cohen's-|Conger's \u03BA":
                 return self.intra_kappa
@@ -182,6 +260,12 @@ class AnalyseFrame(ContainerFrame):
             
 
     def toggle(self, mode):
+        """Toggles the selection state of either IDs or metrics.
+        
+        :param mode: The mode to toggle, either 'id' or 'metric'.
+        :type mode: str
+        :raises ValueError: If an invalid mode is provided.
+        """
         if mode == "id":
             intra_dic = self.intra_ids
             inter_dic = self.inter_ids
@@ -227,14 +311,51 @@ class AnalyseFrame(ContainerFrame):
             btn.config(text="Alle abwählen")
 
     def help_cmd(self,event=None):
+        """Opens the help frame for the AnalyseFrame.
+        
+        This method creates an instance of the PrepAnalyseHelpFrame class,
+        which displays a help frame with relevant information for the
+        AnalyseFrame.
+        
+        :param event: The event that triggered the help command, defaults to None.
+        :type event: tkinter.Event, optional
+        """
         PrepAnalyseHelpFrame(self.container)
 
     def update_frame(self):
+        """Updates the frame by populating the rater and metrics containers.
+        
+        This method is responsible for refreshing the content of the frame by
+        invoking methods to populate the rater container and the metrics container.
+        """
         self.populate_rater_container()
         self.populate_metrics_container()
 
 class ResultsFrame(ContainerFrame):
+    """A class to represent the ResultsFrame, which sets up the GUI components
+    for displaying reliability analysis results. It includes methods for
+    calculating and populating intra-rater and inter-rater results, exporting
+    results to a file, and updating the frame with dynamic data.
+    """
     def __init__(self, container):
+        """Initializes the ResultsFrame class, setting up the GUI components for displaying
+        reliability analysis results.
+        
+        :param container: The parent container to which this frame belongs.
+        :type container: tkinter.Tk or tkinter.Toplevel
+        
+        The constructor performs the following steps:
+        
+        1. Initializes the debug mode and reliability analyses attributes.
+        2. Calls the parent class constructor.
+        3. Configures the styles for buttons and notebook tabs.
+        4. Creates a central container frame and a notebook widget.
+        5. Adds a label for the results section.
+        6. Sets up frames and scrollable frames for intra-rater and inter-rater results.
+        7. Adds an export button with a command to export results.
+        8. Arranges the layout using grid and pack geometry managers.
+        9. Configures the row and column weights for resizing behavior.
+        """
         self.debug = True
         self.reliability_analyses = None
         super().__init__(container)
@@ -283,12 +404,29 @@ class ResultsFrame(ContainerFrame):
         self.intrarater_frame.columnconfigure(0, weight=1)
 
     def calculate_results(self):
+        """Calculates and initializes reliability analyses for intra-rater and inter-rater
+        metrics using the selected IDs and metrics.
+        
+        :raises ValueError: If any of the required parameters are missing or invalid.
+        """
         self.reliability_analyses = CreateAnalyses(selected_intra_ids, selected_inter_ids, 
                                                    selected_intra_metrics, selected_inter_metrics,
                                                    self.container.scale_format, self.container.categories,
                                                    self.container.weights, self.container.filevalidation.labels)
 
     def populate_intra_results(self):
+        """Populates the intra-rater results tab with the selected metrics and relevant
+        information.
+        
+        Adds a new tab to the notebook for intra-rater results, constructs the table
+        headings and content based on the selected metrics, and appends additional
+        information if the scale format is nominal or ordinal. Displays the results
+        in a table and provides additional information in labeled frames.
+        
+        :raises ZeroDivisionError: If a division by zero occurs while calculating
+        metric values.
+        :raises Exception: If an error occurs while retrieving metric values.
+        """
         if selected_intra_ids and selected_intra_metrics:
             self.notebook.add(self.intrarater_frame, text="Intra-Rater")
 
@@ -398,6 +536,16 @@ class ResultsFrame(ContainerFrame):
             intrarater_info_list.pack(fill="y")
 
     def populate_inter_results(self):
+        """Populates the inter-rater results tab with the selected metrics and relevant
+        information.
+        
+        Adds a new tab to the notebook for inter-rater results, constructs the table
+        headings and content based on the selected metrics, and appends additional
+        information if the scale format is nominal or ordinal. Displays the results
+        in a table and provides additional information in labeled frames.
+        
+        :raises Exception: If an error occurs while retrieving metric values.
+        """
         if selected_inter_ids and selected_inter_metrics:
             self.notebook.add(self.interrater_frame, text="Inter-Rater")    # Legt einen neuen Tab im Notebook an
 
@@ -459,6 +607,13 @@ class ResultsFrame(ContainerFrame):
 
     def export_cmd(self):
 
+        """Saves the reliability analysis results to a file selected by the user.
+        
+        The user is prompted to choose a file location and format. The supported file
+        formats are Excel (.xlsx, .xls), LibreOffice Calc (.ods), and CSV (.csv).
+        
+        :raises ValueError: If the filename is not provided or invalid.
+        """
         filename = tk.filedialog.asksaveasfilename(filetypes=[
             ("Excel files", ".xlsx .xls"), 
             ("Libreoffice Calc files", ".ods"),
@@ -482,3 +637,17 @@ class ResultsFrame(ContainerFrame):
         self.calculate_results()
         self.populate_intra_results()
         self.populate_inter_results()
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,3 +1,16 @@
+"""A module for creating a graphical user interface (GUI) for scale and weight
+selection, and file import using tkinter.
+
+Classes:
+
+ScaleFrame
+A class to represent the ScaleFrame for scale and weight selection GUI.
+
+FileFrame
+A class to represent the FileFrame for file import GUI.
+"""
+
+
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import tkinter.font as font
@@ -10,7 +23,27 @@ import pandas as pd
 
 
 class ScaleFrame(ContainerFrame):
+    """A class to represent the ScaleFrame for scale and weight selection GUI.
+    
+    This class extends ContainerFrame and sets up the graphical user interface
+    components for selecting scale types and weights. It includes methods to
+    initialize the frame, populate scale types and weights, handle navigation,
+    display help instructions, and update the frame based on the current mode.
+    """
     def __init__(self, container):
+        """Initializes the ScaleFrame class, setting up the GUI components for scale and
+        weight selection.
+        
+        This constructor method sets up the ScaleFrame class by configuring styles,
+        creating and arranging various widgets, and setting up the layout for the scale
+        and weight selection interface. It includes labels, containers, and buttons to
+        guide the user through the selection process.
+        
+        :param container: The main application container that holds the frames and
+        shared data.
+        :type container: object
+        :returns: None
+        """
         super().__init__(container)
         self.scale_types = ["nominal", "ordinal", "intervall", "ratio"]
         self.weights = ["identity", "linear", "quadratic", "bipolar", "circular", "ordinal", "radial", "ratio"]
@@ -42,6 +75,15 @@ class ScaleFrame(ContainerFrame):
 
 
     def populate_frame(self, mode):
+        """Populates the frame based on the given mode.
+        
+        Depending on the mode, this method populates the frame with the appropriate
+        UI elements for selecting scale types and weights.
+        
+        :param mode: The mode to determine which UI elements to populate.
+        :type mode: str
+        :returns: None
+        """
         if mode == "analyse":
             self.populate_scaletype()
             self.populate_weights()
@@ -49,6 +91,14 @@ class ScaleFrame(ContainerFrame):
             self.populate_scaletype()
     
     def populate_weights(self):
+            """Populates the weight selection UI elements.
+            
+            This method creates and arranges the widgets for selecting a weight type and
+            provides informational labels describing each weight type. The widgets are
+            added to the `center_container` frame.
+            
+            :returns: None
+            """
             weights_label = ttk.Label(self.center_container, font="Arial 22",
                                     text="Gewichte")
             weights_menu = ttk.OptionMenu(self.center_container, self.selected_weight, "identity", *self.weights,
@@ -73,6 +123,14 @@ class ScaleFrame(ContainerFrame):
             self.center_container.columnconfigure(0, weight=1)
 
     def populate_scaletype(self):
+            """Populates the scale type selection UI elements.
+            
+            This method creates and arranges the widgets for selecting a scale type and
+            provides informational labels describing each scale type. The widgets are added
+            to the `center_container` frame.
+            
+            :returns: None
+            """
             scale_format_label = ttk.Label(self.center_container, font="Arial 22",
                                     text="Skalenformat")
             scale_menu = ttk.OptionMenu(self.center_container, self.selected_scale, "nominal", *self.scale_types,
@@ -100,6 +158,15 @@ class ScaleFrame(ContainerFrame):
             self.center_container.columnconfigure(0, weight=1)
     
     def next_cmd(self):
+        """Updates the container's scale format and weights, then navigates to the
+        FileFrame.
+        
+        This method sets the container's `scale_format` to the selected scale and,
+        if in 'analyse' mode, sets the container's `weights` to the selected weight.
+        It then updates and displays the 'FileFrame'.
+        
+        :returns: None
+        """
         self.container.scale_format = self.selected_scale.get()
         if self.container.mode == "analyse":
             self.container.weights = self.selected_weight.get()
@@ -108,9 +175,27 @@ class ScaleFrame(ContainerFrame):
         self.container.show_frame("FileFrame")
     
     def help_cmd(self,event=None):
+        """Displays the help frame for scale selection instructions.
+        
+        This method creates an instance of the `ScaleHelpFrame` class, which provides
+        guidance on how to select scales correctly.
+        
+        :param event: Optional event parameter for binding with GUI events.
+        :type event: tkinter.Event, optional
+        :returns: None
+        """
         ScaleHelpFrame(self.container)
 
     def update_frame(self):
+        """Updates the frame by clearing non-button and non-frame widgets and repopulating
+        it based on the current mode.
+        
+        This method iterates through the children of `center_container`, destroying any
+        widget that is not a button or a frame. It then repopulates the frame according
+        to the current mode of the container.
+        
+        :returns: None
+        """
         for widget in self.center_container.winfo_children():
             if not isinstance(widget, tk.ttk.Button) and not isinstance(widget, tk.Frame):
                 widget.destroy()
@@ -118,7 +203,25 @@ class ScaleFrame(ContainerFrame):
 
 
 class FileFrame(ContainerFrame):
+    """A class to represent the FileFrame for file import GUI.
+    
+    This class extends ContainerFrame and sets up the graphical user interface
+    components for importing files. It includes methods to initialize the frame,
+    populate format previews, select files, display help instructions, and update
+    the frame.
+    """
     def __init__(self, container):
+        """Initializes the FileFrame class, setting up the GUI components for file import.
+        
+        This constructor method sets up the FileFrame class by configuring styles, creating
+        and arranging various widgets, and setting up the layout for the file import
+        interface. It includes labels, containers, and buttons to guide the user through
+        the file import process.
+        
+        :param container: The main application container that holds the frames and shared data.
+        :type container: object
+        :returns: None
+        """
         super().__init__(container)
         container.style.configure("FileFrame.TButton", font="Arial 18", foreground="black")
 
@@ -175,6 +278,17 @@ class FileFrame(ContainerFrame):
 
 
     def populate_format_preview(self, format_container):
+        """Populates the format preview based on the selected scale format and container.
+        
+        Depending on the scale format (nominal, ordinal, etc.) and the specified format
+        container, this method creates a table with appropriate headings and content.
+        It also adds relevant informational labels to guide the user about the required
+        headers and data format.
+        
+        :param format_container: The container to populate with the format preview.
+        :type format_container: ttk.Frame
+        :returns: None
+        """
         if self.container.scale_format == "nominal" or self.container.scale_format == "ordinal":
             if format_container == self.format_1_container:
                 headings = ["Categories", "Rater ID", "Sentiment Analysis\nis nice!", "If I run the code in\nthe GUI, it just hangs."]
@@ -251,6 +365,20 @@ class FileFrame(ContainerFrame):
 
 
     def select_file(self, container):
+        """Selects a file, validates it, and updates the container with the file's data.
+        
+        This method opens a file dialog for the user to select a file. It then validates
+        the selected file and updates the container with the file's categories, rater
+        IDs, text, formatted text, and labels. Depending on the mode of the container,
+        it updates and shows the appropriate frame.
+        
+        :param container: The main application container that holds the frames and
+        shared data.
+        :type container: object
+        :returns: None
+        :raises Exception: If there is an error during file import or validation, an
+        error message is displayed.
+        """
         filename = tk.filedialog.askopenfilename(filetypes=[
             ("Excel files", ".xlsx .xls"), 
             ("Libreoffice Calc files", ".ods"),
@@ -288,10 +416,27 @@ class FileFrame(ContainerFrame):
     def help_cmd(self,event=None):
         # Jedes Frame erzeugt ein HelpFrame mit eigenen Inhalten.
         # Wird in den vererbten Klassen implementiert.
+        """Displays the help frame for file import instructions.
+        
+        This method creates an instance of the `ImportHelpFrame` class, which provides
+        guidance on how to import files correctly.
+        
+        :param event: Optional event parameter for binding with GUI events.
+        :type event: tkinter.Event, optional
+        :returns: None
+        """
         ImportHelpFrame(self.container)
 
     def update_frame(self):
         # Widgets aus vorheriger Session löschen, falls User über Home-Button den Frame erneut öffnet.
+        """Updates the frame by clearing all existing widgets and repopulating it with
+        the format preview.
+        
+        This method ensures that any widgets from a previous session are removed
+        before repopulating the frame with the updated format preview.
+        
+        :returns: None
+        """
         for widget in self.format_1_container.winfo_children():
             widget.destroy()
         for widget in self.format_2_container.winfo_children():
@@ -306,3 +451,16 @@ class FileFrame(ContainerFrame):
         # Frames neu befüllen
         self.populate_format_preview(self.format_1_container)
         self.populate_format_preview(self.format_2_container)
+
+
+
+
+
+
+
+
+
+
+
+
+

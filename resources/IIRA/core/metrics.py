@@ -1,3 +1,19 @@
+"""A module for calculating various inter-rater reliability metrics.
+
+This module provides functionalities to compute Cohen's Kappa, Fleiss' Kappa,
+Gwet's AC, Krippendorff's Alpha, and the Intraclass Correlation Coefficient
+(ICC). It also computes the overall agreement and G-index for the given ratings.
+
+Classes:
+
+Metrics
+A class for calculating various inter-rater reliability metrics.
+
+Functions:
+
+map_metrics(metric)
+Maps a given metric name to its corresponding internal representation.
+"""
 import irrCAC as ir
 from irrCAC.raw import CAC 
 import pingouin as pg
@@ -12,7 +28,22 @@ SECOND_REPLICATE = 1
 
 
 class Metrics():
+    """A class for calculating various inter-rater reliability metrics, including
+    Cohen's Kappa, Fleiss' Kappa, Gwet's AC, Krippendorff's Alpha, and the
+    Intraclass Correlation Coefficient (ICC). It also computes the overall
+    agreement and G-index for the given ratings.
+    """
     def __init__(self, scale_format, categories, ratings, weights):
+        """Initializes the Metrics class with the given parameters and sets up the analysis
+        based on the scale format.
+        
+        :param scale_format: The format of the scale, either 'ordinal', 'nominal', or
+        another type for ICC calculation.
+        :param categories: A list of categories used in the ratings.
+        :param ratings: A DataFrame containing the ratings.
+        :param weights: Weights to be used in the analysis.
+        :raises Exception: If there is an error creating the analysis object.
+        """
         self.debug = False
         self.scale_format = scale_format
         self.categories = categories
@@ -67,6 +98,14 @@ class Metrics():
 
 
     def cohens_kappa(self):
+        """Calculate Cohen's Kappa for the given ratings.
+        
+        Cohen's Kappa is a statistical measure of inter-rater agreement for categorical
+        items. It is generally used to evaluate the agreement between two raters.
+        
+        :returns: The Cohen's Kappa coefficient value.
+        :rtype: float
+        """
         return self.analysis.conger()["est"]["coefficient_value"]
 
     def fleiss_kappa(self):
@@ -81,10 +120,27 @@ class Metrics():
 
 
     def krippendorfs_alpha(self):
+        """Calculate Krippendorff's Alpha for the given ratings.
+        
+        Krippendorff's Alpha is a measure of the agreement among raters. It is
+        suitable for different levels of measurement and can handle missing data.
+        
+        :returns: The Krippendorff's Alpha coefficient value.
+        :rtype: float
+        """
         return self.analysis.krippendorff()["est"]["coefficient_value"]
 
     def g_index(self):
         #TODO Vorraussetzungen checken
+        """Calculate the G-index for the given ratings.
+        
+        The G-index is computed based on the overall agreement and the number of
+        categories. It adjusts the overall agreement to account for the number of
+        categories.
+        
+        :returns: The G-index rounded to four decimal places.
+        :rtype: float
+        """
         q = len(self.categories)
         p_a = self.overall_agreement()
 
@@ -93,6 +149,16 @@ class Metrics():
         return float(round(g_index, 4))
 
     def icc(self):
+        """Calculate the Intraclass Correlation Coefficient (ICC).
+        
+        This method computes the ICC for the given ratings using the Pingouin library.
+        It restructures the ratings data into a format suitable for ICC calculation,
+        creates a DataFrame, and computes the ICC. If debugging is enabled, it prints
+        the intermediate data structures.
+        
+        :returns: A DataFrame containing the ICC results rounded to four decimal places.
+        :rtype: pandas.DataFrame
+        """
         pg_targets = []
         pg_raters = []
         pg_ratings = []
@@ -122,6 +188,17 @@ class Metrics():
 
     # Helper functions
     def overall_agreement(self):
+        """Calculate the overall agreement among ratings.
+        
+        The method computes the overall agreement for a given set of ratings. If there
+        are exactly two replications per subject, it calculates the proportion of
+        subjects for which both replications agree. If there are more than two
+        replications, it calculates the agreement using a different formula.
+        
+        :returns: The overall agreement as a decimal value.
+        :rtype: decimal.Decimal
+        :raises ValueError: If the number of replications per subject is less than two.
+        """
         q = len(self.categories)
         p_a = dec.Decimal("0")
         if self.replications == 2:
@@ -163,6 +240,14 @@ class Metrics():
     
 
 def map_metrics(metric):
+    """Maps a given metric name to its corresponding internal representation.
+    
+    :param metric: The name of the metric to map. Supported metrics are:
+    "Cohen's-|Conger's κ", "Fleiss' κ", "Krippendorff's α",
+    and "Gwet's AC".
+    :returns: The internal string representation of the given metric.
+    :rtype: str
+    """
     if metric == "Cohen's-|Conger's \u03BA":
         return "conger"
     elif metric == "Fleiss' \u03BA":
@@ -171,3 +256,10 @@ def map_metrics(metric):
         return "krippendorff"
     elif metric == "Gwet's AC":
         return "gwet"
+
+
+
+
+
+
+

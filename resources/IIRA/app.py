@@ -16,8 +16,16 @@ from PIL import ImageTk
 file_path = os.path.dirname(os.path.realpath(__file__))
 
 class App(tk.Tk):
-
+    """A class to represent the main application window, managing GUI elements,
+    themes, frames, and database interactions.
+    """
     def __init__(self):
+        """Initialize the App class, which sets up the main application window, loads
+       icons, initializes database interaction, and configures the graphical user
+       interface (GUI) elements including themes and frames.
+       
+       :returns: None
+       """
         super().__init__()
         self.load_icons()
 
@@ -52,10 +60,10 @@ class App(tk.Tk):
     
     def show_frame(self, frame_name):
         """Switch to the specified frame by raising it to the top of the stacking order.
-       
-       :param frame_name: The name of the frame to be displayed.
-       :type frame_name: str
-       :returns: None
+        
+        :param frame_name: The name of the frame to be displayed.
+        :type frame_name: str
+        :returns: None
        """
         frame = self.frames[frame_name]
         frame.tkraise()
@@ -130,6 +138,9 @@ class App(tk.Tk):
 if __name__ == "__main__":
   app = App()
   app.mainloop()
+
+
+
 
 
 

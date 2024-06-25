@@ -1,3 +1,29 @@
+"""Module for validating and processing file content based on specific formats.
+
+This module handles reading file content, determining its format, and extracting
+various attributes such as categories, rater IDs, text, and labels. It supports
+files in Excel, ODS, and CSV formats, and processes them according to 'nominal'
+or 'ordinal' scale formats. The module also provides methods for writing
+processed data back to a file and performing specific text processing tasks.
+
+Classes:
+
+FileValidation
+A class for validating and processing file content based on specific
+formats.
+
+DBInteraction
+A class to handle database interactions, including loading, creating,
+deleting, and changing profiles, and writing profile data to a CSV file.
+
+Functions:
+
+write_excel(analyse, intra_ids, intra_metrics, inter_ids, inter_metrics,
+scale_format, filename)
+Writes analysis results to an Excel file.
+"""
+
+
 import re
 import pathlib
 import datetime
@@ -14,7 +40,27 @@ PROFILE = 0
 RATING = 1
 
 class FileValidation():
+    """A class for validating and processing file content based on specific formats.
+    
+    This class handles reading file content, determining its format, and extracting
+    various attributes such as categories, rater IDs, text, and labels. It supports
+    files in Excel, ODS, and CSV formats, and processes them according to 'nominal'
+    or 'ordinal' scale formats. The class also provides methods for writing processed
+    data back to a file and performing specific text processing tasks.
+    """
     def __init__(self, file, scale_format):
+        """Initializes the FileValidation class with the provided file and scale format.
+        
+        This constructor sets up various attributes and processes the input file based on
+        its extension. It reads the file content into a DataFrame, removes unnamed columns,
+        and performs initial checks and data extraction based on the scale format.
+        
+        :param file: The file path to be validated.
+        :type file: str
+        :param scale_format: The scale format, either 'nominal' or 'ordinal'.
+        :type scale_format: str
+        :raises ValueError: If the file format cannot be determined based on headers.
+        """
         self.debug = False
         file_extension = pathlib.Path(file).suffix
         self.content = None
@@ -67,6 +113,15 @@ class FileValidation():
             print()
         
     def check_format(self):
+        """Checks the format of the file content based on its headers.
+        
+        This method inspects the headers of the file content to determine its format.
+        If a header matches 'Rater ID', it sets the format to 'Format 1'. If a header
+        matches 'Subject', it sets the format to 'Format 2'. If neither header is found,
+        it raises a ValueError.
+        
+        :raises ValueError: If the file format cannot be determined based on headers.
+        """
         headers = list(self.content.columns)
 
         for header in headers:
@@ -83,11 +138,27 @@ class FileValidation():
         
 
     def find_categories(self):
+        """Identifies and extracts categories from the file content.
+        
+        This method processes the file content to find and store unique categories
+        in the `categories` attribute. It skips any null values encountered.
+        
+        :returns: None
+        """
         for item in self.content["Categories"]:
             if not pd.isnull(item):
                 self.categories.append(item)
 
     def find_rater_ids(self):
+        """Identifies and extracts rater IDs from the file content based on the file format.
+        
+        This method processes the file content to find and store unique rater IDs in the
+        `rater_ids` attribute. The extraction logic varies depending on whether the file
+        format is 'Format 1' or 'Format 2', and further depends on the scale format for
+        'Format 2'.
+        
+        :raises ValueError: If the file format is not recognized.
+        """
         if self.format == "Format 1":
             for item in self.content["Rater ID"]:
                 if not pd.isnull(item):
@@ -108,6 +179,14 @@ class FileValidation():
 
         
     def find_text(self):
+        """Processes and extracts text from the file content based on the file format.
+        
+        This method identifies and processes text from the file content, storing it
+        in the `text` and `formatted_text` attributes. The processing differs
+        depending on whether the file format is 'Format 1' or 'Format 2'.
+        
+        :raises ValueError: If the file format is not recognized.
+        """
         if self.format == "Format 1":
             if self.scale_format == "nominal" or self.scale_format == "ordinal":
                 for header in self.content:
@@ -135,6 +214,14 @@ class FileValidation():
                     self.text.append(item)
 
     def find_labels(self):
+        """Processes and extracts labels from the file content based on the file format.
+        
+        This method identifies and processes labels from the file content, storing them
+        in the `labels` attribute. The processing differs depending on whether the file
+        format is 'Format 1' or 'Format 2'.
+        
+        :raises ValueError: If the file format is not recognized.
+        """
         if self.format == "Format 1":
             for row in range(len(self.content)):
                 if pd.isnull(self.content.loc[row, "Rater ID"]):
@@ -164,6 +251,17 @@ class FileValidation():
                     self.labels[rater_id] = text_label_list
 
     def write_file(self, path, ratings):
+        """Writes the ratings data to a specified file.
+        
+        This method processes the ratings data, merges it with existing content, and
+        writes the combined data to a file in the specified format (Excel, ODS, or CSV).
+        
+        :param path: The file path where the data will be written.
+        :type path: str
+        :param ratings: A list of ratings to be written to the file.
+        :type ratings: list of tuples
+        :returns: None
+        """
         if self.scale_format == "nominal" or self.scale_format == "ordinal":
             columns = ["Categories", "Rater ID"]
         else:
@@ -238,9 +336,27 @@ class FileValidation():
             df.to_csv(path, sep=";", index = False, header=True)
 
     def usr_to_id(self, user):
+        """Generates a unique identifier for a user.
+        
+        :param user: The username to be converted.
+        :type user: str
+        :returns: A unique identifier string prefixed with 'ir_app_'.
+        :rtype: str
+        """
         return "ir_app_" + user
 
     def nlp(self, text):
+        """Processes the input text for NLP tasks.
+        
+        This method performs specific text processing steps, including extracting
+        the longest substring within square brackets if a specific metadata string
+        is present, and removing trailing decimal points.
+        
+        :param text: The input text to be processed.
+        :type text: str
+        :returns: The processed text.
+        :rtype: str
+        """
         sentisurvey_metadata = "How would you label the following sentences regarding its polarity? Rate the sentences as positive, negative or neutral (neither positive nor negative) based on your perception."
         if sentisurvey_metadata in text:
             text = max(re.findall(re.escape("[")+"(.*?)"+re.escape("]"),text), key=len)
@@ -251,7 +367,21 @@ class FileValidation():
 
 
 class DBInteraction():
+    """A class to handle database interactions, including loading, creating, deleting,
+    and changing profiles, and writing profile data to a CSV file.
+    """
     def __init__(self, db_path):
+        """Initializes the DBInteraction class.
+        
+        This constructor initializes the DBInteraction class by setting up the database
+        path, reading the database file, and loading profiles. It supports Excel files
+        with extensions '.xlsx' and '.xls', OpenDocument Spreadsheet files with the
+        extension '.ods', and CSV files. The profiles are then loaded from the database.
+        
+        :param db_path: The file path to the database.
+        :type db_path: str
+        :raises ValueError: If the file extension is not supported.
+        """
         file_extension = pathlib.Path(db_path).suffix
         self.db_path = db_path
         self.db = None 
@@ -269,6 +399,14 @@ class DBInteraction():
         self.load_profiles()
 
     def load_profiles(self):
+        """Loads profiles from the database.
+        
+        This method checks if there are any profiles in the database. If a profile
+        exists, it sets the first profile as the active profile and stores the
+        remaining profiles in a list.
+        
+        :returns: None
+        """
         if len(self.db["Profile"]) > 0:
             if not pd.isnull(self.db["Profile"][0]):
                 self.active_profile = self.db["Profile"][0]
@@ -277,6 +415,14 @@ class DBInteraction():
             return
     
     def create_profile(self, new_profile):
+        """Creates a new profile and updates the database.
+        
+        If there is an active profile, it is added to the profiles list before
+        setting the new profile as active. The changes are then written to the
+        database.
+        
+        :param new_profile: The new profile to be set as active.
+        """
         if self.active_profile != "":
             self.profiles.append(self.active_profile)
         self.active_profile = new_profile
@@ -285,12 +431,29 @@ class DBInteraction():
 
     
     def delete_profile(self):
+        """Deletes the active profile from the database.
+        
+        This method sets the active profile to the first profile in the list of
+        profiles, removes it from the list, and writes the changes to the database.
+        
+        :raises IndexError: If the profiles list is empty.
+        """
         self.active_profile = self.profiles[0]
         self.profiles.remove(self.active_profile)
 
         self.write_to_db()
 
     def change_profile(self, change_to):
+        """Changes the active profile to a specified profile.
+        
+        This method swaps the current active profile with the profile specified by
+        the `change_to` parameter. The current active profile is then added to the
+        list of profiles, and the specified profile is removed from it. Finally,
+        the changes are written to the database.
+        
+        :param change_to: The profile to switch to.
+        :raises ValueError: If the specified profile is not in the list of profiles.
+        """
         tmp = self.active_profile
         self.active_profile = change_to
         self.profiles.remove(change_to)
@@ -299,11 +462,29 @@ class DBInteraction():
         self.write_to_db()
 
     def write_to_db(self):
+        """Writes the current active profile and other profiles to a CSV file.
+        
+        This method creates a DataFrame from the active profile and the list of
+        other profiles, then writes it to the specified CSV file path.
+        
+        :raises IOError: If there is an issue writing to the CSV file.
+        """
         self.db = pd.DataFrame([self.active_profile] + self.profiles, columns=["Profile"])
         self.db.to_csv(self.db_path, sep=";", index = False, header=True)
 
 
 def write_excel(analyse, intra_ids, intra_metrics, inter_ids, inter_metrics, scale_format, filename):
+    """Writes analysis results to an Excel file.
+    
+    :param analyse: Analysis object containing the results.
+    :param intra_ids: List of intra-rater IDs.
+    :param intra_metrics: List of intra-rater metrics.
+    :param inter_ids: List of inter-rater IDs.
+    :param inter_metrics: List of inter-rater metrics.
+    :param scale_format: Scale format, either 'nominal' or 'ordinal'.
+    :param filename: Name of the output Excel file.
+    :raises ZeroDivisionError: If a division by zero occurs during metric calculation.
+    """
     workbook = xlsxwriter.Workbook(filename)
     worksheet = workbook.add_worksheet()
     b_cell_format = workbook.add_format()
@@ -458,3 +639,29 @@ def write_excel(analyse, intra_ids, intra_metrics, inter_ids, inter_metrics, sca
                 
 
     workbook.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

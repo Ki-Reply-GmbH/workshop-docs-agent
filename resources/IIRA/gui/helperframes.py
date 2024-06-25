@@ -1,3 +1,48 @@
+"""This module provides a graphical user interface (GUI) for managing user profiles,
+creating scrollable frames, and displaying help dialogs using the tkinter library.
+
+Classes:
+
+ProfileFrame
+A class to create a user interface for managing user profiles.
+
+ScrollFrame
+A class to create a scrollable frame using a canvas and a vertical scrollbar.
+
+MainHelpFrame
+A class to create a help dialog window for providing information about the
+main functionalities of the application, organized into tabs with detailed
+help text.
+
+ScaleHelpFrame
+A class to create a help dialog window for providing information on scales
+and weights, organized into tabs with detailed help text and interactive
+elements.
+
+ImportHelpFrame
+A class to create a help dialog window for providing information on importing
+data formats, organized into tabs with detailed help text for each format.
+
+PrepAnalyseHelpFrame
+A class to create a help dialog window for providing information on preparing
+an analysis, including selecting raters and metrics. The window is organized
+into tabs with detailed help text and hyperlinks for further information.
+
+ResultsHelpFrame
+A class to create a help dialog window for providing information about the
+results of reliability analyses.
+
+RateHelpFrame
+A class to create a help dialog window for providing information about the
+rating functionality in the application.
+
+Functions:
+
+callback(url)
+Opens the provided URL in a web browser.
+"""
+
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 import shutil
@@ -17,7 +62,26 @@ urls = ["https://irrcac.readthedocs.io/en/latest/irrCAC.html#module-irrCAC.weigh
         ]
 
 class ProfileFrame(tk.Toplevel):
+    """A class to create a user interface for managing user profiles.
+    """
     def __init__(self, container):
+        """Initializes the ProfileFrame class, which creates a user interface for managing
+        user profiles.
+        
+        The constructor performs the following actions:
+        - Calls the constructor of the parent class (tk.Toplevel).
+        - Sets the container attribute to the provided container.
+        - Initializes a StringVar for user input.
+        - Sets the window title to 'Profil' and configures its geometry and
+        non-resizable properties.
+        - Creates and configures various widgets including labels, buttons, and frames.
+        - Populates the profile change menu with available profiles.
+        - Arranges the widgets using grid and pack layout managers.
+        - Configures the row weights for responsive design.
+        
+        :param container: The parent container for this Toplevel window.
+        :type container: tkinter.Tk or tkinter.Toplevel
+        """
         super().__init__(container)
         self.container = container
 
@@ -69,6 +133,16 @@ class ProfileFrame(tk.Toplevel):
 
     def ok_cmd(self, event=None):
         # event=None erforderlich für die Return-Taste
+        """Handles the 'Ok' button click event.
+        
+        If the user input is empty, the window is closed. Otherwise, a new profile
+        is created using the user input, and the profile label and change profile
+        menu are updated. The user input field is then cleared, and any child
+        widgets in the separator frame are destroyed.
+        
+        :param event: The event object (default is None).
+        :returns: None
+        """
         if len(self.user_input.get()) == 0:
             # Kein neues Profil angelegt; Fenster direkt schließen.
             self.destroy()
@@ -84,9 +158,24 @@ class ProfileFrame(tk.Toplevel):
                 widget.destroy()
 
     def populate_profile_label(self):
+        """Updates the profile name label with the active profile.
+        
+        This method retrieves the active profile name from the database interaction
+        object and updates the text of the profile name label accordingly.
+        
+        :returns: None
+        """
         self.profile_name_label.configure(text=self.container.dbinteraction.active_profile)
 
     def populate_change_profile_menu(self):
+        """Populate the profile change menu with available profiles.
+        
+        This method creates a new menu for changing profiles and populates it with
+        radio buttons for each profile stored in the database. When a profile is
+        selected, the `change_profile` method is called to update the active profile.
+        
+        :returns: None
+        """
         change_profile_menu = tk.Menu(self.change_profile_mbutton, tearoff=False)
         self.change_profile_mbutton.configure(menu=change_profile_menu)
         profile_selection = tk.StringVar()
@@ -96,6 +185,14 @@ class ProfileFrame(tk.Toplevel):
                                                 label=user, command=lambda:self.change_profile(profile_selection.get()))
 
     def create_new_profile(self):
+        """Creates a new profile input field if none exists.
+        
+        This method checks if the separator frame has any child widgets. If not,
+        it adds a label and an entry field for the user to input a new profile name.
+        The entry field is bound to the Return key to trigger the `ok_cmd` method.
+        
+        :returns: None
+        """
         if not self.separator_frame.winfo_children():
             # Falls der Button noch nicht gedrückt wurde, füge Input-Feld hinzu.
             name_label = ttk.Label(self.separator_frame, text="Name:", font="Arial 16")
@@ -106,11 +203,21 @@ class ProfileFrame(tk.Toplevel):
             input.pack(side="right")
 
     def change_profile(self, profile_selection):
+        """Changes the active profile to the selected profile and updates the UI.
+        
+        :param profile_selection: The name of the profile to switch to.
+        :type profile_selection: str
+        """
         self.container.dbinteraction.change_profile(profile_selection)
         self.populate_profile_label()
         self.populate_change_profile_menu()
 
     def delete_profile(self):
+        """Deletes the current profile if there are multiple profiles available. If it is
+        the only profile, shows an error message.
+        
+        :raises messagebox.showerror: If attempting to delete the only profile.
+        """
         if len(self.container.dbinteraction.profiles) == 0:
             # Kein anderes Profil vorhanden. Dann darf das Aktuelle nicht gelöscht werden.
             messagebox.showerror(title="Einziges Profil", message="Das ist dein einziges Profil. Erstelle erst ein Neues, um es zu löschen.")
@@ -121,7 +228,35 @@ class ProfileFrame(tk.Toplevel):
 
 
 class ScrollFrame(ttk.Frame):
+    """A class to create a scrollable frame using a canvas and a vertical scrollbar.
+    """
     def __init__(self, parent):
+        """Initializes the ScrollFrame class, which creates a scrollable frame using a
+        canvas and a vertical scrollbar.
+        
+        The constructor performs the following actions:
+        - Calls the constructor of the parent class (ttk.Frame).
+        - Creates a vertical scrollbar and associates it with the canvas.
+        - Creates a canvas with no border and no highlight, sets its background to
+        white, and configures it to use the scrollbar for vertical scrolling.
+        - Creates a viewport frame within the canvas to hold child widgets.
+        - Packs the scrollbar to the right side of the frame, filling vertically.
+        - Packs the canvas to the left side of the frame, expanding to fill the space.
+        - Adds the viewport frame to the canvas as a window, anchored to the northwest.
+        - Binds the '<Configure>' event of the viewport frame to the onFrameConfigure
+        method to adjust the scroll region when the viewport size changes.
+        - Binds the '<Configure>' event of the canvas to the onCanvasConfigure method
+        to adjust the canvas window width when the canvas is resized.
+        - Binds the '<Enter>' event of the viewport frame to the onEnter method to bind
+        mouse wheel events when the cursor enters the control.
+        - Binds the '<Leave>' event of the viewport frame to the onLeave method to
+        unbind mouse wheel events when the cursor leaves the control.
+        - Calls the onFrameConfigure method to perform an initial adjustment of the
+        scroll region.
+        
+        :param parent: The parent container for this frame.
+        :type parent: tkinter.Tk or tkinter.Toplevel
+        """
         super().__init__(parent) # create a frame (self)
 
         self.vsb = ttk.Scrollbar(self, orient="vertical") #place a scrollbar on self 
@@ -142,13 +277,36 @@ class ScrollFrame(ttk.Frame):
         self.onFrameConfigure(None)                                                 #perform an initial stretch on render, otherwise the scroll region has a tiny border until the first resize
 
     def onFrameConfigure(self, event):                                              
+        """Adjusts the scroll region of the canvas based on the bounding box of all
+        items within it.
+        
+        :param event: The event object containing information about the frame
+        configure event.
+        :type event: tkinter.Event
+        """
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))                 #whenever the size of the frame changes, alter the scroll region respectively.
 
     def onCanvasConfigure(self, event):
+        """Adjusts the width of the canvas window when the canvas is resized.
+        
+        :param event: The event object containing information about the canvas
+        configure event.
+        :type event: tkinter.Event
+        """
         canvas_width = event.width
         self.canvas.itemconfig(self.canvas_window, width = canvas_width)            #whenever the size of the canvas changes alter the window region respectively.
 
     def onMouseWheel(self, event):                                                  # cross platform scroll wheel event
+        """Handles mouse wheel events for scrolling the canvas.
+        
+        This method adjusts the vertical view of the canvas based on the mouse wheel
+        event. It supports different platforms (Windows, macOS, Linux) by using the
+        appropriate event attributes.
+        
+        :param event: The event object containing information about the mouse wheel
+        event.
+        :type event: tkinter.Event
+        """
         if platform.system() == "Windows":
             self.canvas.yview_scroll(int(-1* (event.delta/120)), "units")
         elif platform.system() == "Darwin":
@@ -160,6 +318,15 @@ class ScrollFrame(ttk.Frame):
                 self.canvas.yview_scroll( 1, "units" )
     
     def onEnter(self, event):                                                       # bind wheel events when the cursor enters the control
+        """Binds mouse wheel events when the cursor enters the control.
+        
+        This method handles the binding of mouse wheel events for different platforms
+        when the cursor enters the control. On Linux, it binds the '<Button-4>' and
+        '<Button-5>' events, while on other platforms, it binds the '<MouseWheel>' event.
+        
+        :param event: The event object containing information about the enter event.
+        :type event: tkinter.Event
+        """
         if platform.system() == "Linux":
             self.canvas.bind_all("<Button-4>", self.onMouseWheel)
             self.canvas.bind_all("<Button-5>", self.onMouseWheel)
@@ -167,6 +334,15 @@ class ScrollFrame(ttk.Frame):
             self.canvas.bind_all("<MouseWheel>", self.onMouseWheel)
 
     def onLeave(self, event):                                                       # unbind wheel events when the cursorl leaves the control
+        """Unbinds mouse wheel events when the cursor leaves the control.
+        
+        This method handles the unbinding of mouse wheel events for different platforms
+        when the cursor leaves the control. On Linux, it unbinds the '<Button-4>' and
+        '<Button-5>' events, while on other platforms, it unbinds the '<MouseWheel>' event.
+        
+        :param event: The event object containing information about the leave event.
+        :type event: tkinter.Event
+        """
         if platform.system() == "Linux":
             self.canvas.unbind_all("<Button-4>")
             self.canvas.unbind_all("<Button-5>")
@@ -175,7 +351,39 @@ class ScrollFrame(ttk.Frame):
 
 
 class MainHelpFrame(tk.Toplevel):
+    """A class to create a help dialog window for providing information about the
+    main functionalities of the application, organized into tabs with detailed
+    help text.
+    """
     def __init__(self, container):
+        """Initializes the MainHelpFrame class, which creates a help dialog window for
+        providing information about the main functionalities of the application.
+        
+        :param container: The parent container for this Toplevel window.
+        :type container: tkinter.Tk or tkinter.Toplevel
+        
+        The constructor performs the following actions:
+        - Calls the constructor of the parent class (tk.Toplevel).
+        - Sets the container attribute to the provided container.
+        - Sets the title of the window to 'Hilfe - Hauptmenü'.
+        - Sets the geometry of the window to 500x650 pixels.
+        - Creates a ttk.Notebook widget for organizing content in tabs.
+        - Adds three tabs labeled 'Generell', 'Analysieren', and 'Bewerten' to the
+        notebook.
+        - Packs the notebook to expand and fill the window.
+        - Creates a tk.Text widget in the 'Generell' tab to display general help
+        information.
+        - Inserts various sections of help text into the 'Generell' text widget.
+        - Packs the 'Generell' text widget with padding for better layout.
+        - Creates a tk.Text widget in the 'Analysieren' tab to display help information
+        about the analysis functionality.
+        - Inserts various sections of help text into the 'Analysieren' text widget.
+        - Packs the 'Analysieren' text widget with padding for better layout.
+        - Creates a tk.Text widget in the 'Bewerten' tab to display help information
+        about the rating functionality.
+        - Inserts various sections of help text into the 'Bewerten' text widget.
+        - Packs the 'Bewerten' text widget with padding for better layout.
+        """
         super().__init__(container)
         self.container = container
 
@@ -229,7 +437,39 @@ class MainHelpFrame(tk.Toplevel):
 
 
 class ScaleHelpFrame(tk.Toplevel):
+    """A class to create a help dialog window for providing information on scales
+    and weights, organized into tabs with detailed help text and interactive
+    elements.
+    """
     def __init__(self, container):
+        """Initializes the ScaleHelpFrame class, which creates a help dialog window for
+        providing information on scales and weights.
+        
+        :param container: The parent container for this Toplevel window.
+        :type container: tkinter.Tk or tkinter.Toplevel
+        
+        The constructor performs the following actions:
+        - Calls the constructor of the parent class (tk.Toplevel).
+        - Sets the container attribute to the provided container.
+        - Sets the title of the window to 'Hilfe - Skalen & Gewichte'.
+        - Sets the geometry of the window to 500x650 pixels.
+        - Creates a ttk.Notebook widget for organizing content in tabs.
+        - Adds two tabs labeled 'Skalenformate' and 'Gewichte' to the notebook.
+        - Packs the notebook to expand and fill the window.
+        - Creates a tk.Text widget in the 'Skalenformate' tab to display help
+        information about different scale formats.
+        - Configures text tags for bold formatting within the 'Skalenformate' text
+        widget.
+        - Inserts various sections of help text into the 'Skalenformate' text widget.
+        - Packs the 'Skalenformate' text widget with padding for better layout.
+        - Creates a tk.Text widget in the 'Gewichte' tab to display help information
+        about weights.
+        - Configures text tags for bold formatting and hyperlink styling within the
+        'Gewichte' text widget.
+        - Binds a callback function to hyperlinks in the 'Gewichte' text widget.
+        - Inserts various sections of help text into the 'Gewichte' text widget.
+        - Packs the 'Gewichte' text widget with padding for better layout.
+        """
         super().__init__(container)
         self.container = container
 
@@ -336,7 +576,35 @@ class ScaleHelpFrame(tk.Toplevel):
 
 
 class ImportHelpFrame(tk.Toplevel):
+    """A class to create a help dialog window for providing information on importing
+    data formats, organized into tabs with detailed help text for each format.
+    """
     def __init__(self, container):
+        """Initializes the ImportHelpFrame class, which creates a help dialog window for
+        providing information on importing data formats.
+        
+        :param container: The parent container for this Toplevel window.
+        :type container: tkinter.Tk or tkinter.Toplevel
+        
+        The constructor performs the following actions:
+        - Calls the constructor of the parent class (tk.Toplevel).
+        - Sets the container attribute to the provided container.
+        - Sets the title of the window to 'Hilfe - Importieren'.
+        - Sets the geometry of the window to 500x650 pixels.
+        - Creates a ttk.Notebook widget for organizing content in tabs.
+        - Adds two tabs labeled 'Format 1' and 'Format 2' to the notebook.
+        - Packs the notebook to expand and fill the window.
+        - Creates a tk.Text widget in the 'Format 1' tab to display help information
+        about the first data format.
+        - Configures text tags for bold formatting within the 'Format 1' text widget.
+        - Inserts various sections of help text into the 'Format 1' text widget.
+        - Packs the 'Format 1' text widget with padding for better layout.
+        - Creates a tk.Text widget in the 'Format 2' tab to display help information
+        about the second data format.
+        - Configures text tags for bold formatting within the 'Format 2' text widget.
+        - Inserts various sections of help text into the 'Format 2' text widget.
+        - Packs the 'Format 2' text widget with padding for better layout.
+        """
         super().__init__(container)
         self.container = container
 
@@ -409,7 +677,38 @@ class ImportHelpFrame(tk.Toplevel):
 
 class PrepAnalyseHelpFrame(tk.Toplevel):
 
+    """A class to create a help dialog window for providing information on preparing
+    an analysis, including selecting raters and metrics. The window is organized
+    into tabs with detailed help text and hyperlinks for further information.
+    """
     def __init__(self, container):
+        """Initializes the PrepAnalyseHelpFrame class, which creates a help dialog window
+        for providing information on preparing an analysis.
+        
+        :param container: The parent container for this Toplevel window.
+        :type container: tkinter.Tk or tkinter.Toplevel
+        
+        The constructor performs the following actions:
+        - Calls the constructor of the parent class (tk.Toplevel).
+        - Sets the container attribute to the provided container.
+        - Sets the title of the window to 'Hilfe - Analyse vorbereiten'.
+        - Sets the geometry of the window to 500x650 pixels.
+        - Creates a ttk.Notebook widget for organizing content in tabs.
+        - Adds two tabs labeled 'Bewerter' and 'Metriken' to the notebook.
+        - Packs the notebook to expand and fill the window.
+        - Creates a tk.Text widget in the 'Bewerter' tab to display help information
+        about selecting raters.
+        - Configures text tags for bold formatting within the 'Bewerter' text widget.
+        - Inserts various sections of help text into the 'Bewerter' text widget.
+        - Packs the 'Bewerter' text widget with padding for better layout.
+        - Creates a tk.Text widget in the 'Metriken' tab to display help information
+        about selecting metrics.
+        - Configures text tags for bold formatting and hyperlink styling within the
+        'Metriken' text widget.
+        - Binds callback functions to hyperlinks in the 'Metriken' text widget.
+        - Inserts various sections of help text into the 'Metriken' text widget.
+        - Packs the 'Metriken' text widget with padding for better layout.
+        """
         super().__init__(container)
         self.container = container
 
@@ -486,6 +785,32 @@ class ResultsHelpFrame(tk.Toplevel):
     TODO
     """
     def __init__(self, container):
+        """Initializes the ResultsHelpFrame class, which creates a help dialog window for
+        providing information about the results of reliability analyses.
+        
+        :param container: The parent container for this Toplevel window.
+        :type container: tkinter.Tk or tkinter.Toplevel
+        
+        The constructor performs the following actions:
+        - Calls the constructor of the parent class (tk.Toplevel).
+        - Sets the container attribute to the provided container.
+        - Sets the title of the window to 'Hilfe - Ergebnisse'.
+        - Sets the geometry of the window to 500x650 pixels.
+        - Creates a ttk.Notebook widget for organizing content in tabs.
+        - Adds two tabs labeled 'Generell' and 'Interpretation' to the notebook.
+        - Packs the notebook to expand and fill the window.
+        - Creates a tk.Text widget in the 'Generell' tab to display general help
+        information about the results.
+        - Configures text tags for bold formatting within the 'Generell' text widget.
+        - Inserts various sections of help text into the 'Generell' text widget.
+        - Packs the 'Generell' text widget with padding for better layout.
+        - Creates a tk.Text widget in the 'Interpretation' tab to display information
+        on how to interpret the results.
+        - Configures text tags for bold formatting within the 'Interpretation' text
+        widget.
+        - Inserts various sections of help text into the 'Interpretation' text widget.
+        - Packs the 'Interpretation' text widget with padding for better layout.
+        """
         super().__init__(container)
         self.container = container
 
@@ -567,6 +892,25 @@ class RateHelpFrame(tk.Toplevel):
     TODO
     """
     def __init__(self, container):
+        """Initializes the RateHelpFrame class, which creates a help dialog window for
+        providing information about the rating functionality in the application.
+        
+        :param container: The parent container for this Toplevel window.
+        :type container: tkinter.Tk or tkinter.Toplevel
+        
+        The constructor performs the following actions:
+        - Calls the constructor of the parent class (tk.Toplevel).
+        - Sets the container attribute to the provided container.
+        - Sets the title of the window to 'Hilfe - Bewerten'.
+        - Sets the geometry of the window to 500x650 pixels.
+        - Creates a ttk.Notebook widget for organizing content in tabs.
+        - Adds a single tab labeled 'Generell' to the notebook.
+        - Packs the notebook to expand and fill the window.
+        - Creates a tk.Text widget in the 'Generell' tab to display help information.
+        - Configures text tags for bold formatting within the text widget.
+        - Inserts various sections of help text into the text widget.
+        - Packs the text widget with padding for better layout.
+        """
         super().__init__(container)
         self.container = container
 
@@ -613,3 +957,27 @@ class RateHelpFrame(tk.Toplevel):
 def callback(url):
     """ Die Funktion erhält ein String-Argument, welches im Webbrowser geöffnet wird. """
     webbrowser.open_new(url)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -11,7 +11,20 @@ from core.fileinteraction import FileValidation
 import pandas as pd
 
 class MainFrame(ContainerFrame):
+    """A class to represent the main frame of the application, setting up the UI
+    components, handling profile creation, and managing different operational
+    modes such as 'analyse' and 'rate'.
+    """
     def __init__(self, container):
+        """Initializes the MainFrame class, setting up the main user interface components.
+        
+        This constructor configures the main frame and its child widgets, including
+        buttons, labels, and frames. It also sets up the layout and styling for these
+        components.
+        
+        :param container: The parent container for this frame.
+        :type container: tkinter.Tk or tkinter.Toplevel
+        """
         super().__init__(container)
 
 
@@ -61,12 +74,32 @@ class MainFrame(ContainerFrame):
         center_container.columnconfigure(2, weight=1)
 
     def start_mode(self, mode):
+        """Starts the specified mode and updates the ScaleFrame.
+        
+        :param mode: The mode to start, e.g., 'analyse' or 'rate'.
+        :type mode: str
+        """
         self.container.mode = mode
         self.container.frames["ScaleFrame"].update_frame()
         self.container.show_frame("ScaleFrame")
     
     def no_profile(self):
+        """Handles the creation of a new profile if none exists.
+        
+        Displays a window prompting the user to enter a profile name. If the input
+        is empty, an error message is shown. Otherwise, a new profile is created
+        and the window is closed.
+        
+        :raises ValueError: If the user input is empty.
+        """
         def start_cmd():
+            """Handles the command to start creating a new profile.
+            
+            If the user input is empty, it shows an error message. Otherwise, it creates
+            a new profile using the provided name and closes the profile creation window.
+            
+            :raises ValueError: If the user input is empty.
+            """
             if len(user_input.get()) == 0:
                 messagebox.showerror(title="Profil anlegen", message="Bitte gib einen Namen an, um ein Profil anzulegen.")
             else:
@@ -106,4 +139,14 @@ class MainFrame(ContainerFrame):
         container_frame.columnconfigure(0, weight=1)
 
     def help_cmd(self,event=None):
+        """Handles the help command event by opening the main help frame.
+        
+        :param event: The event that triggered this command, defaults to None.
+        :type event: tkinter.Event, optional
+        """
         MainHelpFrame(self.container)
+
+
+
+
+

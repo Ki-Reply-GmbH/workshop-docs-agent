@@ -13,7 +13,42 @@ RATING = 1
 
 class RateFrame(ContainerFrame):
 
+    """A class to represent the RateFrame, which handles the user interface for
+    rating text elements. It includes methods for populating navigation,
+    randomizing text order, handling events, and updating the UI based on
+    user interactions. The class also manages saving and deleting rating
+    sessions, and updating the percentage of completed ratings.
+    """
     def __init__(self, container):
+        """Initializes the RateFrame class, setting up the user interface and configuring
+        various widgets and styles.
+        
+        :param container: The container widget that holds this frame.
+        :type container: tkinter.Widget
+        :returns: None
+        :raises None: This method does not raise any exceptions.
+        
+        The constructor performs the following steps:
+        
+        1. Initializes instance variables such as `text`, `text_index`, `profile`,
+        `ratings`, `total_ratings`, `shuffler`, and `undo_shuffler`.
+        2. Calls the superclass constructor with the container parameter.
+        3. Configures various styles for Treeview, Radiobutton, and Label widgets.
+        4. Binds the right and left arrow keys to `next_cmd` and `prev_cmd` methods.
+        5. Creates and configures frames for layout: `left_frame`, `mid_frame`,
+        `right_frame`, and `top_frame`.
+        6. Sets row and column configurations for the grid layout.
+        7. Adds separators and frames to the menu bar for layout and functionality.
+        8. Creates and configures save and delete frames with associated labels and
+        binds events for mouse enter, leave, and click actions.
+        9. Sets up the text preview Treeview widget with columns, headings, and binds
+        events for double-click and arrow keys.
+        10. Creates and configures the percentage label.
+        11. Sets up the text label and navigation buttons in the middle frame.
+        12. Configures the right frame with separators and a container for radio
+        buttons.
+        13. Calls `populate_categories` to initialize category selection widgets.
+        """
         self.text = []
         self.text_index = 0
         self.profile = container.dbinteraction.active_profile
@@ -129,6 +164,15 @@ class RateFrame(ContainerFrame):
 
     def populate_navigation(self):
 
+        """Populates the navigation tree view with text elements.
+        
+        This method divides the text elements into groups of ten and creates parent
+        nodes for each group in the tree view. Each parent node contains child nodes
+        representing individual text elements. The method also sets the initial focus
+        and selection to the first child node.
+        
+        :returns: None
+        """
         upper_limit = math.ceil(len(self.text) / 10)
         for i in range(upper_limit): #aufrunden, damit es genügend parent nodes gibt
             # values arguments als tuple, um treeview internes nlp zu vermeiden
@@ -159,6 +203,13 @@ class RateFrame(ContainerFrame):
         self.text_preview.selection_set("child_0")
 
     def randomize(self, mode):
+        """Randomizes or restores the order of text and ratings based on the mode.
+        
+        :param mode: The mode of operation. 'do' shuffles the text and ratings,
+        'undo' restores the original order.
+        :type mode: str
+        :raises ValueError: If the mode is not 'do' or 'undo'.
+        """
         if mode == "do":
             self.shuffler = np.random.permutation(len(self.text))
             self.undo_shuffler = np.argsort(self.shuffler)
@@ -171,6 +222,16 @@ class RateFrame(ContainerFrame):
 
 
     def doubleclick_treeview(self, event):
+        """Handles the double-click event on the tree view.
+        
+        This method identifies the row that was double-clicked, updates the text index,
+        and populates the text based on the selected item. If a rating exists for the
+        selected text, it sets the category variable accordingly. Otherwise, it clears
+        the category variable.
+        
+        :param event: The event object containing information about the double-click.
+        :type event: tkinter.Event
+        """
         item_iid = self.text_preview.identify_row(event.y)
 
         if "child_" in item_iid:
@@ -187,10 +248,24 @@ class RateFrame(ContainerFrame):
 
 
     def delete_questions(self):
+        """Clears all questions from the text preview tree view.
+        
+        This method iterates through all items in the `text_preview` tree view
+        widget and deletes each one, effectively clearing the tree view.
+        
+        :returns: None
+        """
         for item in self.text_preview.get_children():
             self.text_preview.delete(item)
 
     def populate_categories(self):
+        """Populates the category selection widgets based on the scale format.
+        
+        If the scale format is 'intervall' or 'ratio', it creates an entry widget
+        for numerical input. Otherwise, it creates radio buttons for each category.
+        
+        :returns: None
+        """
         if self.container.scale_format == "intervall" or self.container.scale_format == "ratio":
             info_label = ttk.Label(self.rbtn_container, text="Eingegeben:", font="Arial 16")
             self.var_entered = ttk.Label(self.rbtn_container, text="n.a.", font="Arial 16")
@@ -215,14 +290,39 @@ class RateFrame(ContainerFrame):
                         self.bind_all(str(i + 1), self.cat_hotkey_cmd)
 
     def delete_categories(self):
+        """Deletes all category-related widgets from the `rbtn_container` frame.
+        
+        This method retrieves all child widgets of the `rbtn_container` frame and
+        destroys them, effectively clearing any displayed categories.
+        
+        :returns: None
+        """
         children_widgets = self.rbtn_container.winfo_children()
         for widget in children_widgets:
             widget.destroy()
 
     def populate_text(self):
+        """Updates the text label with the current text element.
+        
+        This method configures the `text_label` widget to display the current text
+        element, formatted with newlines for readability.
+        
+        :returns: None
+        """
         self.text_label.config(text=self.add_newlines(self.text[self.text_index], 75))
 
     def add_newlines(self, text, n):
+        """Adds newlines to the given text at appropriate positions based on the specified
+        length `n`. If a word exceeds the length `n`, it is split with a newline. The
+        method ensures that no line exceeds the length `n`.
+        
+        :param text: The text to be formatted with newlines.
+        :type text: str
+        :param n: The maximum length of each line.
+        :type n: int
+        :returns: The formatted text with newlines.
+        :rtype: str
+        """
         n = self.count_upper_case(text, n)
 
         if len(text) < n:
@@ -247,6 +347,16 @@ class RateFrame(ContainerFrame):
         return form_text
     
     def count_upper_case(self, text, n):
+        """Counts the number of uppercase characters in the given text and adjusts the
+        value of `n` if the count is at least half the length of the text.
+        
+        :param text: The text to be analyzed.
+        :type text: str
+        :param n: The initial value to be potentially adjusted.
+        :type n: int
+        :returns: The adjusted value of `n`.
+        :rtype: int
+        """
         count_upper_case = 0 
         for char in text:
             if char.isupper():
@@ -257,6 +367,16 @@ class RateFrame(ContainerFrame):
         return n
 
     def entry_input_cmd(self, event=None):
+        """Handles the input command for the entry widget.
+        
+        This method processes the input from the entry widget. If the input is not
+        empty, it sets the `categories_var` to the input value, updates the label
+        text, moves to the next item, and clears the entry widget.
+        
+        :param event: Optional event that triggered the method, defaults to None.
+        :type event: tkinter.Event, optional
+        :returns: None
+        """
         if len(self.var_input.get()) == 0:
             # Falls User nichts eingegeben hat, tue nichts.
             return
@@ -275,6 +395,16 @@ class RateFrame(ContainerFrame):
         self.var_input.delete(0, "end")
 
     def cat_hotkey_cmd(self, event):
+        """Handles the hotkey command for category selection.
+        
+        This method adjusts the category based on the hotkey pressed by the user.
+        It updates the `categories_var` with the selected category and calls the
+        `label_text` method to reflect the changes in the UI and data structure.
+        
+        :param event: The event that triggered the method, containing the hotkey.
+        :type event: tkinter.Event
+        :returns: None
+        """
         category_no = int(event.char) - 1
 
         # Wert der Variablen anpassen
@@ -285,6 +415,18 @@ class RateFrame(ContainerFrame):
 
     def next_cmd(self, event=None):
 
+        """Advances to the next text element and updates the UI accordingly.
+        
+        This method handles the action for navigating to the next text element.
+        It updates the current text index, populates the text and rating fields,
+        and adjusts the navigation tree view to reflect the current state. If the
+        text index is already at the end, the method returns without making any
+        changes.
+        
+        :param event: Optional; the event that triggered the method, defaults to None.
+        :type event: tkinter.Event, optional
+        :returns: None
+        """
         self.focus_set() # Für Zugriff auf Key-Bindings von left- und right-arrow
         if self.text_index == len(self.text) - 1:
             # User ist am Ende der Fragen angekommen.
@@ -325,6 +467,17 @@ class RateFrame(ContainerFrame):
 
     def prev_cmd(self, event=None):
 
+        """Handles the action for navigating to the previous text element.
+        
+        This method updates the current text index, populates the text and rating
+        fields, and adjusts the navigation tree view to reflect the current state.
+        If the text index is already at the beginning, the method returns without
+        making any changes.
+        
+        :param event: Optional; the event that triggered the method, defaults to None.
+        :type event: tkinter.Event, optional
+        :returns: None
+        """
         self.focus_set() # Für Zugriff auf Key-Bindings von left- und right-arrow
         if self.text_index == 0:
             return 
@@ -359,6 +512,16 @@ class RateFrame(ContainerFrame):
 
 
     def save_cmd(self):
+        """Saves the current ratings to a file.
+        
+        This method first checks if the text has been shuffled and, if so,
+        restores the original order. It then sets the focus to the current
+        widget and opens a file dialog to prompt the user to specify a
+        filename and file type for saving. The ratings are then written
+        to the specified file.
+        
+        :returns: None
+        """
         if self.shuffler is not None:
             self.randomize("undo")
 
@@ -372,6 +535,14 @@ class RateFrame(ContainerFrame):
         self.container.filevalidation.write_file(filename, self.ratings)
 
     def delete_cmd(self):
+        """Handles the deletion of the current rating session.
+        
+        This method sets the focus, prompts the user with a message box to confirm
+        the deletion of the entire rating session. If the user confirms, it resets
+        the categories, clears the ratings list, and updates the frame.
+        
+        :returns: None
+        """
         self.focus_set()
         result = messagebox.askyesno(title="Verwerfen", message="Die gesamte Bewertungssession verwerfen?")
         if result:
@@ -386,6 +557,16 @@ class RateFrame(ContainerFrame):
             return
 
     def label_text(self, event=None):
+        """Updates the rating for the current text element based on the selected category.
+        
+        If the selected category matches the existing rating, it removes the rating.
+        Otherwise, it updates or sets the rating. It also updates the navigation tree
+        to reflect the changes and checks if all text elements have been rated.
+        
+        :param event: Optional event that triggered the method, defaults to None.
+        :type event: tkinter.Event, optional
+        :returns: None
+        """
         self.focus_set()
 
         if self.ratings[self.text_index]:
@@ -445,6 +626,15 @@ class RateFrame(ContainerFrame):
             self.labeling_finished()
 
     def labeling_finished(self):
+        """Checks if all text elements have been rated and prompts the user to save.
+        
+        This method compares the total number of ratings with the length of the text.
+        If all text elements have been rated, it displays a message box asking the user
+        if they want to save the ratings. If the user confirms, it calls the save
+        command.
+        
+        :returns: None
+        """
         if self.total_ratings == len(self.text):
             # Falls alle Fragen beantwortet worde sind, fragen ob er speichern will.
             result = messagebox.askyesno(title="Glückwunsch", message="Du hast alle Textelemente bewertet.\nBewertungen speichern?")
@@ -452,6 +642,14 @@ class RateFrame(ContainerFrame):
                 self.save_cmd()
 
     def populate_percentage(self):
+        """Updates the percentage label based on the total ratings.
+        
+        This method calculates the percentage of total ratings relative to the length
+        of the text. It updates the percentage label with the calculated percentage
+        and changes its style based on predefined thresholds.
+        
+        :returns: None
+        """
         percentage = int(100 * self.total_ratings / len(self.text))
         percentage_str = str(int(100 * self.total_ratings / len(self.text))) + " %"
         self.percent_label.config(text=percentage_str)
@@ -468,6 +666,15 @@ class RateFrame(ContainerFrame):
             self.percent_label.config(style="Green.TLabel")
 
     def home_cmd(self):
+        """Handles the home command action.
+        
+        This method prompts the user with a message box asking if they want to save
+        the current rating session. If the user chooses to save, it calls the save
+        command. Regardless of the user's choice, it initializes the frames and
+        displays the main frame.
+        
+        :returns: None
+        """
         result = messagebox.askyesno(title="Speichern?", message="Soll die Bewertungssession gespeichert werden?")
         if result:
             self.save_cmd()
@@ -477,9 +684,27 @@ class RateFrame(ContainerFrame):
         self.container.show_frame("MainFrame")
 
     def help_cmd(self,event=None):
+        """Opens the help frame for the RateFrame.
+        
+        This method creates an instance of the RateHelpFrame class, which displays
+        help information related to the RateFrame.
+        
+        :param event: Optional; the event that triggered the help command.
+        :type event: tkinter.Event, optional
+        """
         RateHelpFrame(self.container)
 
     def update_frame(self, mode=None):
+        """Updates the frame with the latest text and ratings.
+        
+        This method sets the focus, updates the text from the container, and initializes
+        the ratings list. If the mode is 'do', it randomizes the text and ratings. It
+        also deletes and repopulates categories, questions, navigation, text, and
+        percentage.
+        
+        :param mode: Optional; if set to 'do', randomizes text and ratings.
+        :type mode: str, optional
+        """
         self.focus_set() # Für Zugriff auf Key-Bindings von left- und right-arrow
         self.text = self.container.formatted_text
         for text_entry in self.text:
@@ -496,3 +721,25 @@ class RateFrame(ContainerFrame):
         self.populate_text()
         self.populate_percentage()
         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -6,7 +6,24 @@ import os
 from gui.helperframes import ProfileFrame
 
 class ContainerFrame(ttk.Frame):
+    """A class representing a container frame with a menu bar.
+    
+    This class extends ttk.Frame and initializes a container frame with an
+    accent color, a menu bar, and various interactive elements such as 'Home',
+    'Profile', and 'Help' sections. It also includes methods for handling
+    mouse events, toggling color modes, creating tables, and initializing
+    specific frames within the container.
+    """
     def __init__(self, container):
+        """Initializes a new instance of the ContainerFrame class.
+        
+        This constructor sets up the initial state of the ContainerFrame, including its
+        container, accent color, and menu bar. It also configures the style of the
+        container and initializes the menu bar.
+        
+        :param container: The parent container for this frame.
+        :type container: tkinter.Widget
+        """
         super().__init__(container)
         self.container = container
         self.accent_color = "#217346"
@@ -16,6 +33,14 @@ class ContainerFrame(ttk.Frame):
 
     def init_menu_bar(self):
         # GUI-Elemente
+        """Initializes the menu bar with various frames and labels.
+        
+        This method sets up the 'Home', 'Profile', and 'Help' sections in the menu bar,
+        including their respective event bindings for mouse enter, leave, and click
+        events. It also places separators for better visual organization.
+        
+        :returns: None
+        """
         home_frame = ttk.Frame(self.menu_bar, width=65, height=50)
         home_label = ttk.Label(home_frame, text="Home", image=self.container.home_icon, compound="top", font="Arial 12")
         home_frame.bind("<Enter>", lambda x: self.on_enter(home_frame, home_label))
@@ -54,16 +79,37 @@ class ContainerFrame(ttk.Frame):
         self.help_label.place(relx=0.5, rely=0.5, anchor="center")
 
     def on_enter(self, frame, label):
+        """Configures the frame and label styles when the mouse enters the frame.
+        
+        :param frame: The frame widget to configure.
+        :type frame: ttk.Frame
+        :param label: The label widget to update the background color.
+        :type label: ttk.Label
+        """
         if frame is not None:
             frame.configure(style="TopFrame.TFrame")
         label["background"] = self.accent_color
 
     def on_leave(self, frame, label):
+        """Configures the frame and label styles when the mouse leaves the frame.
+        
+        :param frame: The frame widget to configure.
+        :type frame: ttk.Frame
+        :param label: The label widget to update the background color.
+        :type label: ttk.Label
+        """
         if frame is not None:
             frame.configure(style="TFrame")
         label["background"] = ttk.Style().lookup("TFrame", "background")
 
     def toggle_color_mode(self):
+        """Toggles the color mode between light and dark themes.
+        
+        This method switches the application's color mode based on the current state.
+        If the application is in light mode, it switches to dark mode and vice versa.
+        
+        :returns: None
+        """
         if self.container.light_mode:
             self.container.light_mode = False
             self.container.style.theme_use("forest-dark")
@@ -73,6 +119,20 @@ class ContainerFrame(ttk.Frame):
 
     
     def create_table(self, parent, headings, content):
+        """Creates a table with headings and content in the given parent widget.
+        
+        This method dynamically generates a table using the provided headings and
+        content. Each heading is displayed in bold, and separators are added between
+        columns and rows for better visual separation.
+        
+        :param parent: The parent widget where the table will be created.
+        :type parent: tkinter.Widget
+        :param headings: A list of strings representing the table headings.
+        :type headings: list
+        :param content: A list of lists, where each sublist represents a row in the
+        table. Each cell can be a string or a tkinter variable for a Checkbutton.
+        :type content: list
+        """
         rowspan = max(len(content) + 2, 2)
         columnspan = max(len(headings) * 2, 2)
         index = 0
@@ -104,15 +164,54 @@ class ContainerFrame(ttk.Frame):
                 index += 2
 
     def profile_cmd(self):
+        """Initializes the ProfileFrame within the container.
+        
+        This method creates an instance of ProfileFrame using the container as its
+        parent.
+        
+        :returns: None
+        """
         ProfileFrame(self.container)
 
     def home_cmd(self):
+        """Initializes the home view by resetting frames and displaying the main frame.
+        
+        This method reinitializes all frames within the container and then displays
+        the 'MainFrame'.
+        
+        :returns: None
+        """
         self.container.init_frames()
 
         self.container.show_frame("MainFrame")
 
     def help_cmd(self, event=None):
+        """Handles the help command event.
+        
+        This method should be implemented by subclasses to provide specific help
+        functionality.
+        
+        :param event: The event that triggered the help command, defaults to None.
+        :type event: tkinter.Event, optional
+        :raises NotImplementedError: This method is intended to be overridden by
+        subclasses.
+        """
         raise NotImplementedError
         
     def update_frame(self):
+        """Updates the frame with new data or state.
+        
+        :raises NotImplementedError: This method should be implemented by subclasses.
+        """
         raise NotImplementedError       # Wird in den vererbten Klassen implementiert.
+
+
+
+
+
+
+
+
+
+
+

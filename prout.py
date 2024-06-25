@@ -13,10 +13,23 @@ import dotenv
 dotenv.load_dotenv()
 import os
 
+def unwrap_docs(text: str) -> str:
+	test = text.strip()
+	if test.startswith('"""') and test.endswith('"""'):
+		test = test[3:-3].strip()
+		return test
+	return text
+
 def extract_md_blocks(text: str) -> List[str]:
 	pattern = r"```(?:\w+\s+)?(.*?)```"
 	matches = re.findall(pattern, text, re.DOTALL)
-	return [block.strip() for block in matches]
+	res = [unwrap_docs(block.strip()) for block in matches]
+	if not res:
+		test = unwrap_docs(text)
+		if test:
+			return [test]
+
+	return res
 
 
 llm = ChatOpenAI(
@@ -67,16 +80,16 @@ def list_all_files(path: Path) -> Iterator[GroupDir]:
 
 def document_files(path: str):
 
-	
+	treated_package: dict[str, str | None] = {}
 
-	for module in list_all_files(Path(path)):
+	for package in list_all_files(Path(path)):
 		treated_files: dict[str, str | None] = {}
 	
-		for filename in module.files:
+		for filename in package.files:
 			if treated_files.get(filename, None):
 				continue
 			
-			file = Path.joinpath(Path(module.path), filename)
+			file = Path.joinpath(Path(package.path), filename)
 
 			visited_nodes: set[str] = set()
 			visitor:MyNodeVisitor| None = None
@@ -102,6 +115,11 @@ def document_files(path: str):
 							if res:
 								return res
 
+						if isinstance(elem, ClassElem) and elem.constructor:
+							res = _pick(elem.constructor)
+							if res:
+								return res
+
 					return elem
 
 				def _add_doc(doc: str, to_document: Elem):
@@ -113,29 +131,33 @@ def document_files(path: str):
 						doc = blocs[0]
 
 					to_document.doc = doc
-
-					line = to_document.node_line - 1
-					col = to_document.node_col - 1
-
+     
 					def _stringify(lines: List[str]) -> str:
 						str = ''
 						for line in lines:
 							str = str + line + '\n'
 						return str
 
-					def _ident_docs(doc: str):
+					def _ident_docs(doc: str, left: str):
 						parts = doc.splitlines()
 						parts = [p.strip() for p in parts]
 						res = ''
 						for part in parts:
 							if res:
-								res += f'\n{file_content_lines[line][:col]}{part}'
+								res += f'\n{left}{part}'
 							else:
 								res = part
 						return res
+     
+					if isinstance(to_document, ModuleContainer):
+						new_content = f'"""{_ident_docs(doc, "")}\n"""\n\n\n' + file_content
+					else:
 
-					new_content = _stringify(file_content_lines[0:line]) + file_content_lines[line][:col+1] + \
-						f'"""{_ident_docs(doc)}\n{file_content_lines[line][:col]}"""\n' + file_content_lines[line][:col] + file_content_lines[line][col:] + '\n' + _stringify(file_content_lines[line+1:])
+						line = to_document.node_line - 1
+						col = to_document.node_col - 1
+
+						new_content = _stringify(file_content_lines[0:line]) + file_content_lines[line][:col+1] + \
+							f'"""{_ident_docs(doc, file_content_lines[line][:col+1])}\n{file_content_lines[line][:col+1]}"""\n' + file_content_lines[line][:col] + file_content_lines[line][col:] + '\n' + _stringify(file_content_lines[line+1:])
 
 					with open(file, 'w', encoding='utf-8') as nf:
 						nf.write(new_content)
@@ -151,16 +173,27 @@ def document_files(path: str):
 				print("picked ", to_document.get_id())
 				if isinstance(to_document, FunctionElem):
 					if isinstance(to_document.parent, ClassElem):
+		
+						if to_document is to_document.parent.constructor:
+							prompt = load_prompt(path='class_constructor_prompt.json')
+							chain = prompt | llm | StrOutputParser()
+							doc = chain.invoke({
+								'constructor': to_document.body,
+								'class_name': to_document.parent.name,
+								'context': file_content
+							})
 
-						prompt = load_prompt(path='class_method_prompt.json')
-						chain = prompt | llm | StrOutputParser()
-						doc = chain.invoke({
-							'method': to_document.body,
-							'context': file_content,
-							'class_name': to_document.parent.name
-						})
+							_add_doc(doc, to_document)
+						else:
+							prompt = load_prompt(path='class_method_prompt.json')
+							chain = prompt | llm | StrOutputParser()
+							doc = chain.invoke({
+								'method': to_document.body,
+								'context': file_content,
+								'class_name': to_document.parent.name
+							})
 
-						_add_doc(doc, to_document)
+							_add_doc(doc, to_document)
 					else:
 						prompt = load_prompt(path='method_prompt.json')
 						chain = prompt | llm | StrOutputParser()
@@ -171,17 +204,6 @@ def document_files(path: str):
 
 						_add_doc(doc, to_document)
 				elif isinstance(to_document, ClassElem):
-					if to_document.constructor:
-						prompt = load_prompt(path='class_constructor_prompt.json')
-						chain = prompt | llm | StrOutputParser()
-						doc = chain.invoke({
-							'constructor': to_document.constructor.body,
-							'class_name': to_document.name,
-							'context': file_content
-						})
-
-						_add_doc(doc, to_document)
-						
 					prompt = load_prompt(path='class_prompt.json')
 					chain = prompt | llm | StrOutputParser()
 					doc = chain.invoke({
@@ -197,6 +219,16 @@ def document_files(path: str):
 						all_docs = [f'# {k}\n{v}' for k, v in treated_files.items() if v]
 						doc_global = '\n\n'.join(all_docs)
 						# document the module (= the sub directory)
+	
+						prompt = load_prompt(path='package_prompt.json')
+						chain = prompt | llm | StrOutputParser()
+						doc = chain.invoke({
+							'context': doc_global,
+       						'package_name': Path(package.path).name
+						})
+
+						_add_doc(doc, to_document)
+	
 					elif len(visitor._module.children) > 1:
 						prompt = load_prompt(path='module_prompt.json')
 						chain = prompt | llm | StrOutputParser()
@@ -210,9 +242,22 @@ def document_files(path: str):
 			if not visitor or not visitor._module:
 				raise Exception()
 
-			doc = visitor._module.children[0].doc if len(visitor._module.children) == 1 else visitor._module.doc
+			doc = visitor._module.children[0].doc if len(visitor._module.children) == 1 and filename != '__init__.py' else visitor._module.doc
 			treated_files[filename] = doc
 
+		package_path = str(Path(package.path).relative_to(Path(path).absolute()))
+		treated_package[package_path] = treated_files["__init__.py"] if "__init__.py" in treated_files else None
+	
+	all_packages_raw = '\n\n'.join([f'# {pkg_name}\n{doc}' for pkg_name, doc in treated_package.items() if doc])
+	prompt = load_prompt(path='readme_prompt.json')
+	chain = prompt | llm | StrOutputParser()
+	doc = chain.invoke({
+		'context': all_packages_raw
+	})
+ 
+	with open(Path.joinpath(Path(path), 'README.md'), 'w', encoding='utf-8') as w:
+		w.write(doc)
+  
 class Elem(BaseModel):
 	name: str
 	doc: Optional[str]
@@ -246,6 +291,8 @@ class Elem(BaseModel):
 class Container(Elem):
 	children: List['Elem'] = Field(default_factory=lambda: [])
 
+class ModuleContainer(Container):
+    pass
 
 class ClassElem(Container):
 	constructor: Optional['FunctionElem']
@@ -262,7 +309,7 @@ class MyNodeVisitor(ast.NodeTransformer):
 
 	def __init__(self, filecontent: str, lines: List[str]):
 		self._filecontent = filecontent
-		self._module: Optional[Container] = None
+		self._module: Optional[ModuleContainer] = None
 		self._current_node = self._module
 		self._lines = lines
 	
@@ -270,7 +317,7 @@ class MyNodeVisitor(ast.NodeTransformer):
 		if self._module:
 			raise Exception()
 
-		self._current_node = self._module = Container(name='module', doc=ast.get_docstring(node), parent=None, node_col=1, node_line=1)
+		self._current_node = self._module = ModuleContainer(name='module', doc=ast.get_docstring(node), parent=None, node_col=1, node_line=1)
 		return ast.NodeVisitor.generic_visit(self, node)
 	
 	def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> Any:
