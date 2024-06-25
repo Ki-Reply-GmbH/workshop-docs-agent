@@ -1,0 +1,15 @@
+{
+    "name": null,
+    "input_variables": [
+        "context"
+    ],
+    "input_types": {},
+    "output_parser": null,
+    "partial_variables": {},
+    "metadata": null,
+    "tags": null,
+    "template": "\n    You are a helpful assistant that helps to create documentation for Python source code.\n\n    You are tasked with creating a README file in markdown.\n    You are given the docstring of each package from the source code to create the README file:\n    ```\n    {context}\n    ```\n    Make sure the README explains what the code base intends to do or solve \n    and how it should be used by anybody who visits the repository.\n    \n    Use all the best practices for creating a README.\n    ",
+    "template_format": "f-string",
+    "validate_template": false,
+    "_type": "prompt"
+}
